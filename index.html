@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>星野 · StarSky Studio</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<header><div class="brand"><span class="mark">✧</span><strong>星野</strong><span>STARSKY STUDIO</span><small>360° 全景星空</small></div><button id="resetPreset">↗ Cougar · 夏夜预设</button></header>
+<main>
+<section class="workspace">
+ <div class="scene-top"><div><span class="eyebrow">YOUR WINDOW INTO THE NIGHT</span><h1>把这一刻，留给星空。</h1></div><span class="pill" id="modeBadge">● 实时 · 1×</span></div>
+ <div class="stage" id="stage"><canvas id="sky" width="1280" height="720" aria-label="三维星空取景画面，拖动环顾，滚轮缩放" tabindex="0"></canvas><div id="guide" class="guide"><i></i><i></i><i></i><i></i></div><span class="frame-tag" id="frameTag">16:9 · 1280 × 720</span></div>
+ <div class="scene-caption"><span id="viewReadout">加载星表…</span><span>任意方向拖动 · 滚轮缩放 · 方向键微调 · Q/E旋转</span></div>
+ <div class="transport"><button id="play" class="primary">▶ 播放</button><button id="restart" title="回到片段开始">↺ 重播</button><span id="elapsed">00:00 / 01:00</span><input id="timeline" aria-label="片段进度" type="range" min="0" max="60" step="0.1" value="0"><button id="snapshot">保存图片</button><button id="immersive">沉浸取景</button></div>
+ <div class="clock-row"><span>天空时间 <strong id="skyTime"></strong></span><span id="spanReadout"></span></div>
+ <p id="status" role="status">正在准备星空…</p>
+ <div class="notes"><span>✦ 完整球形星空 · 无地平线遮挡</span><span>银河艺术化显示 · 流星为模拟效果</span></div>
+</section>
+<aside>
+ <fieldset id="controls"><section class="panel"><h2><span>01</span> 时间与地点</h2>
+ <label>地点名称<input id="place" value="Cougar 附近 · 华盛顿州"></label>
+ <div class="pair"><label>纬度（北为正）<input id="lat" type="number" min="-90" max="90" step="0.0001" value="46.05"></label><label>经度（东为正）<input id="lon" type="number" min="-180" max="180" step="0.0001" value="-122.30"></label></div>
+ <label>当地起始日期与时间<input id="date" type="datetime-local" step="1" min="1900-01-01T00:00" max="2100-12-31T23:59" value="2026-07-18T22:54:00"></label>
+ <label>该时刻 UTC 偏移（手动，含夏令时）<input id="offset" type="number" min="-12" max="14" step="0.25" value="-7"></label><small>预设坐标是附近的近似值。更换地点、季节时，请同时核对 UTC 偏移。</small>
+ </section>
+ <section class="panel"><h2><span>02</span> 时间如何流动</h2>
+ <div class="segmented"><button id="realtime" class="active" type="button">实时模式</button><button id="startrail" type="button">星轨模式</button></div>
+ <div class="pair"><label>时间流速<select id="speed"><option value="1">1× · 实时</option><option value="60">60× · 分钟变秒</option><option value="120">120× · 2小时 / 分钟</option><option value="240">240× · 4小时 / 分钟</option><option value="600">600× · 10小时 / 分钟</option></select></label><label>轨迹保留<select id="trail"><option value="off">关闭 · 点状星空</option><option value="all">持续累积</option><option value="fade">逐渐淡去</option></select></label></div>
+ <small>时间流速与星轨独立控制。实时模式下，一分钟内星点移动很小。</small>
+ </section>
+ <section class="panel"><h2><span>03</span> 取景与画面</h2>
+ <div class="pair"><label>方位角<input id="az" type="number" min="0" max="360" step="0.1" value="100"></label><label>仰角<input id="alt" type="number" min="-90" max="90" step="0.1" value="60"></label></div>
+ <div class="pair"><label>画面旋转（°）<input id="roll" type="number" min="-180" max="180" step="0.1" value="0"></label><button id="upright" type="button" class="align-bottom">↶ 画面回正</button></div>
+ <small>视点位于星空球中心，上下左右均可连续转动。仰角是当前朝向读数，不是拖动限位。</small>
+ <label class="range-label">水平视野 <output id="fovValue">90°</output><input id="fov" aria-label="水平视野" type="range" min="30" max="120" value="90"></label>
+ <button id="compose" class="wide" type="button">⌖ 对准牛郎 · 织女 · 天津四</button>
+ <div class="pair"><label>取景比例<select id="aspect"><option value="wide">16:9 横屏</option><option value="portrait">9:16 竖屏</option><option value="photo">4:3 照片</option></select></label><label>恒星显示深度<select id="magnitude"><option value="6">肉眼 · 6等</option><option value="7" selected>丰富 · 7等</option><option value="8.5">摄影 · 8.5等</option></select></label></div>
+ <label class="range-label">银河亮度 <input id="milky" type="range" min="0" max="2" step="0.05" value="1"></label>
+ <div class="checks"><label><input id="labels" type="checkbox" checked> 主星标记</label><label><input id="grid" type="checkbox"> 球面方向网格</label></div>
+ </section>
+ <section class="panel"><h2><span>04</span> 流星与成片</h2>
+ <div class="pair"><label>模拟流星<select id="meteors"><option value="0">关闭</option><option value="2" selected>偶尔 · 2颗 / 分钟</option><option value="5">丰富 · 5颗 / 分钟</option></select></label><label>随机种子<input id="seed" type="number" min="0" max="999999" step="1" value="718"></label></div>
+ <div class="pair"><label>视频格式<select id="container"><option value="mp4">MP4</option><option value="mov">MOV</option></select></label><label>视频编码<select id="codec"><option value="hevc">H.265 · 默认</option><option value="h264">H.264 · 兼容优先</option></select></label></div>
+ <label>输出分辨率<select id="quality"><option value="standard">标准 · 流畅预览</option><option value="1080p">1080P · 全高清</option><option value="4k">4K · 高画质输出</option></select></label><small id="qualityInfo">标准横屏1280×720 · 30fps目标帧率</small>
+ <div class="pair"><label>成片时长（秒）<input id="duration" type="number" min="5" max="120" step="1" value="60"></label><label>导出辅助标记<select id="exportLabels"><option value="no">隐藏 · 干净画面</option><option value="yes">保留</option></select></label></div>
+ <small>同一种子可复现流星。优先逐帧导出30fps；生成耗时取决于画质与设备。请保持此页可见。分辨率见取景框。</small>
+ </section></fieldset>
+ <div class="export-panel"><button id="chooseSave" class="wide">选择保存位置…</button><small id="saveLocation" role="status" aria-live="polite">未选择；导出时选择文件名和文件夹</small><button id="export" class="primary wide">↓ 导出视频</button><button id="cancel" class="wide" hidden>取消录制</button><a id="download" hidden>下载视频</a><progress id="exportProgress" value="0" max="1" hidden></progress></div>
+ <details><summary>精度与数据来源</summary><p>恒星采用 XHIP 星表的 d3-celestial GeoJSON 数据（J2000），含近似岁差修正。未包含自行、章动、大气折射、月亮及行星。银河纹理为程序化示意。全景模式不遮挡下半球，也不模拟白昼亮度；时间和地点决定星空朝向，不代表地面实拍可见性。</p><a href="https://github.com/ofrohn/d3-celestial" target="_blank" rel="noreferrer">d3-celestial / XHIP 数据来源 ↗</a><p>本地运行，H.265/H.264在本机编码，文件不上传云端。请用“启动星野.command”启用完整导出。当前版本没有把原照片作为天空贴图。</p></details>
+</aside></main><script src="data/stars.js"></script><script src="astro.js"></script><script src="mp4.js"></script><script src="app.js"></script></body></html>
