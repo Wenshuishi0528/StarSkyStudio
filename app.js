@@ -1,8 +1,8 @@
 'use strict';
 const $=id=>document.getElementById(id), A=Astro, D=A.D;
-const canvas=$('sky'),ctx=canvas.getContext('2d',{alpha:false});
-const bg=document.createElement('canvas'),bgctx=bg.getContext('2d');
-const trails=document.createElement('canvas'),tc=trails.getContext('2d');
+const canvas=$('sky');let ctx=canvas.getContext('2d',{alpha:false});
+let bg=document.createElement('canvas'),bgctx=bg.getContext('2d');
+let trails=document.createElement('canvas'),tc=trails.getContext('2d');
 const names={91262:['织女星','Vega'],97649:['牛郎星','Altair'],102098:['天津四','Deneb'],11767:['北极星','Polaris']};
 let stars=[],trailStars=[],settings={},elapsed=0,playing=false,lastNow=0,dirty=true,bgKey='',trailTime=0,previous=[],events=[],recording=null,videoURL=null;
 let liveBasis,cam=A.camera(100,60),pointer=null,W=1280,H=720,lastDraw=0,preparing=false,saveHandle=null;
@@ -40,7 +40,7 @@ function changed({reset=true,view=false}={}){try{const next=readSettings(),old=s
  }
  if(view)cam=A.camera(settings.az,settings.alt,settings.roll);
  if(old.start!==settings.start||old.magnitude!==settings.magnitude)buildStars();
- buildMeteors();if(old.aspect!==settings.aspect||old.quality!==settings.quality)resize();clearTrails();bgKey='';dirty=true;updateUI();status(reset?'已更新片段起点。':'已保留当前进度，画面参数已更新。');}catch(e){status(e.message);}}
+ buildMeteors();if(old.aspect!==settings.aspect||old.quality!==settings.quality)resize();clearTrails();bgKey='';dirty=true;if(isImmersive())sizeImmersive();updateUI();status(reset?'已更新片段起点。':'已保留当前进度，画面参数已更新。');}catch(e){status(e.message);}}
 function project(v,b=liveBasis){return A.project(A.horizontal(v,b),cam,W,H,settings.fov);}
 function inside(p,pad=8){return p&&p[0]>-pad&&p[0]<W+pad&&p[1]>-pad&&p[1]<H+pad;}
 function refreshBackground(ms){
@@ -77,8 +77,8 @@ function drawTrails(to){
  tc.globalAlpha=1;
 }
 function drawGrid(){ctx.strokeStyle='#87a9b129';ctx.lineWidth=1;for(let alt=-75;alt<=75;alt+=15){ctx.beginPath();let last=false;for(let az=0;az<=360;az+=2){const v=[Math.cos(alt*D)*Math.sin(az*D),Math.cos(alt*D)*Math.cos(az*D),Math.sin(alt*D)],p=A.project(v,cam,W,H,settings.fov);if(inside(p,100)){if(last)ctx.lineTo(...p);else ctx.moveTo(...p);last=true;}else last=false;}ctx.stroke();}for(let az=0;az<360;az+=30){ctx.beginPath();let last=false;for(let alt=-90;alt<=90;alt+=2){const v=[Math.cos(alt*D)*Math.sin(az*D),Math.cos(alt*D)*Math.cos(az*D),Math.sin(alt*D)],p=A.project(v,cam,W,H,settings.fov);if(inside(p,100)){if(last)ctx.lineTo(...p);else ctx.moveTo(...p);last=true;}else last=false;}ctx.stroke();}}
-function drawMeteors(t){for(const m of events){const q=(t-m.start)/m.life;if(q<0||q>1)continue;const w=W,h=H,x=(m.x+m.dx*q)*w,y=(m.y+m.dy*q)*h,tail=Math.min(q,.18);ctx.globalAlpha=Math.sin(q*Math.PI);const tx=x-m.dx*tail*w,ty=y-m.dy*tail*h;const g=ctx.createLinearGradient(tx,ty,x,y);g.addColorStop(0,'#c8e0ff00');g.addColorStop(1,'#f4faff');ctx.strokeStyle=g;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(tx,ty);ctx.lineTo(x,y);ctx.stroke();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,1.1,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;}
-function render(){const ms=settings.start+elapsed*settings.speed*1000;liveBasis=settings.spaceMode==='space'?[[1,0,0],[0,1,0],[0,0,1]]:A.basis(ms,settings.lat,settings.lon);refreshBackground(ms);ctx.drawImage(bg,0,0,W,H);drawTrails(elapsed);ctx.drawImage(trails,0,0,W,H);ctx.globalAlpha=1;
+function drawMeteors(t){for(const m of events){const q=(t-m.start)/m.life;if(q<0||q>1)continue;const w=renderViewport?renderViewport.width:W,h=renderViewport?renderViewport.height:H,x=(renderViewport?renderViewport.x:0)+(m.x+m.dx*q)*w,y=(renderViewport?renderViewport.y:0)+(m.y+m.dy*q)*h,tail=Math.min(q,.18);ctx.globalAlpha=Math.sin(q*Math.PI);const tx=x-m.dx*tail*w,ty=y-m.dy*tail*h;const g=ctx.createLinearGradient(tx,ty,x,y);g.addColorStop(0,'#c8e0ff00');g.addColorStop(1,'#f4faff');ctx.strokeStyle=g;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(tx,ty);ctx.lineTo(x,y);ctx.stroke();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,1.1,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;}
+function renderScene(){const ms=settings.start+elapsed*settings.speed*1000;liveBasis=settings.spaceMode==='space'?[[1,0,0],[0,1,0],[0,0,1]]:A.basis(ms,settings.lat,settings.lon);refreshBackground(ms);ctx.drawImage(bg,0,0,W,H);drawTrails(elapsed);ctx.drawImage(trails,0,0,W,H);ctx.globalAlpha=1;
  const assist=!recording||$('exportLabels').value==='yes';if(settings.grid&&assist&&settings.spaceMode!=='space')drawGrid();
  const observer=space.observer(ms,settings,elapsed,cam);
  if(settings.spaceMode==='space'){space.drawStars(ctx,ms,settings,observer,cam,W,H,settings.labels&&assist);if(settings.solar)space.drawBodies(ctx,ms,settings,observer,cam,W,H,null,settings.labels&&assist);dirty=false;return;}
@@ -101,7 +101,7 @@ function updateUI(){
 }
 function frame(now){if(playing&&now-lastDraw<31){requestAnimationFrame(frame);return;}lastDraw=now;if(!lastNow)lastNow=now;const dt=(now-lastNow)/1000;lastNow=now;if(playing){elapsed=Math.min(settings.duration,elapsed+dt);dirty=true;}if(dirty){render();updateUI();}if(playing&&elapsed>=settings.duration){playing=false;if(recording)finishRecording(false);updateUI();}requestAnimationFrame(frame);}
 function compose(){const b=settings.spaceMode==='space'?[[1,0,0],[0,1,0],[0,0,1]]:A.basis(settings.start+elapsed*settings.speed*1000,settings.lat,settings.lon),target=stars.filter(s=>[91262,97649,102098].includes(s.id));const v=[0,0,0];for(const s of target){const h=A.horizontal(s.v,b);for(let i=0;i<3;i++)v[i]+=h[i];}const n=Math.hypot(...v);cam=A.camera(A.wrap(Math.atan2(v[0],v[1])/D),Math.asin(clamp(v[2]/n,-1,1))/D);settings.fov=settings.aspect==='portrait'?75:92;syncView();status('已对准夏季大三角，可向任意方向继续转动。');}
-function syncView(){Object.assign(settings,A.cameraAngles(cam));for(const id of ['az','alt','roll'])$(id).value=settings[id].toFixed(1);$('fov').value=settings.fov;clearTrails();bgKey='';dirty=true;updateUI();}
+function syncView(){Object.assign(settings,A.cameraAngles(cam));for(const id of ['az','alt','roll'])$(id).value=settings[id].toFixed(1);$('fov').value=settings.fov;clearTrails();bgKey='';dirty=true;if(isImmersive())sizeImmersive();updateUI();}
 for(const el of $('controls').querySelectorAll('input,select')){
  const onChange=()=>{if(['codec','container'].includes(el.id)){saveHandle=null;$('saveLocation').textContent='格式已改变，请重新选择保存位置';}changed({reset:['lat','lon','date','offset','speed'].includes(el.id),view:['az','alt','roll'].includes(el.id)});};
  el.addEventListener(el.type==='range'?'input':'change',onChange);
@@ -116,20 +116,70 @@ $('visitTarget').onclick=()=>{if(recording)return;playing=false;const ms=setting
 $('returnEarth').onclick=()=>{$('spaceMode').value='sky';$('fly').checked=false;changed({reset:false});compose();};
 
 $('upright').onclick=()=>{const angles=A.cameraAngles(cam);cam=A.camera(angles.az,angles.alt);syncView();status('已将画面回正，朝向与播放进度保持不变。');};
-$('immersive').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.querySelector('.workspace').requestFullscreen();}catch(e){status('无法进入全屏：'+e.message);}};
-document.addEventListener('fullscreenchange',()=>{$('immersive').textContent=document.fullscreenElement?'退出沉浸':'沉浸取景';});
+const immersiveCanvas=$('immersiveSky'),workspace=$('workspace'),transport=$('transport');
+let immersiveBuffers=null,immersiveGeometry=null,renderViewport=null,hideControlsTimer=null,controlsHeld=false,controlsHovered=false,keyboardControls=false,showExportFrame=true;
+function isImmersive(){return document.fullscreenElement===workspace;}
+function sizeImmersive(){
+ if(!isImmersive())return;
+ const width=workspace.clientWidth||window.innerWidth,height=workspace.clientHeight||window.innerHeight;
+ immersiveGeometry=ImmersiveView.geometry(width,height,W,H,settings.fov);
+ const ratio=Math.min(window.devicePixelRatio||1,2);immersiveCanvas.width=Math.round(width*ratio);immersiveCanvas.height=Math.round(height*ratio);
+ const g=immersiveGeometry.frame;Object.assign($('exportFrame').style,{left:g.x+'px',top:g.y+'px',width:g.width+'px',height:g.height+'px'});
+ immersiveBuffers=null;dirty=true;
+}
+function render(){
+ if(!isImmersive()||recording){renderScene();return;}
+ if(!immersiveGeometry)sizeImmersive();
+ const geometry=immersiveGeometry;
+ if(!immersiveBuffers){const b=document.createElement('canvas'),t=document.createElement('canvas');b.width=640;b.height=Math.max(1,Math.round(640*geometry.height/geometry.width));t.width=immersiveCanvas.width;t.height=immersiveCanvas.height;
+ immersiveBuffers={bg:b,bgctx:b.getContext('2d'),trails:t,tc:t.getContext('2d'),bgKey:'',trailTime:0,previous:[]};}
+ const saved={ctx,bg,bgctx,trails,tc,W,H,settings,bgKey,trailTime,previous,renderViewport};
+ try{
+  ({bg,bgctx,trails,tc,bgKey,trailTime,previous}=immersiveBuffers);ctx=immersiveCanvas.getContext('2d',{alpha:false});W=geometry.width;H=geometry.height;
+  settings={...settings,fov:geometry.fov};renderViewport=geometry.renderFrame;
+  const scale=immersiveCanvas.width/W;ctx.setTransform(scale,0,0,scale,0,0);tc.setTransform(scale,0,0,scale,0,0);renderScene();
+  Object.assign(immersiveBuffers,{bgKey,trailTime,previous});
+ }finally{({ctx,bg,bgctx,trails,tc,W,H,settings,bgKey,trailTime,previous,renderViewport}=saved);}
+}
+function revealControls(){if(!isImmersive())return;clearTimeout(hideControlsTimer);hideControlsTimer=null;workspace.classList.toggle('controls-visible',true);}
+function scheduleHideControls(){
+ if(!isImmersive()||hideControlsTimer!==null)return;
+ hideControlsTimer=setTimeout(()=>{hideControlsTimer=null;if(controlsHeld||controlsHovered||(keyboardControls&&transport.contains(document.activeElement)))return;
+  if(transport.contains(document.activeElement))immersiveCanvas.focus();
+  workspace.classList.toggle('controls-visible',false);
+ },1400);
+}
+function onImmersiveChange(){clearTimeout(hideControlsTimer);hideControlsTimer=null;controlsHeld=false;controlsHovered=false;keyboardControls=false;immersiveGeometry=null;immersiveBuffers=null;
+ $('immersive').textContent=isImmersive()?'退出沉浸 · Esc':'沉浸取景';workspace.classList.toggle('controls-visible',false);
+ if(isImmersive()){sizeImmersive();immersiveCanvas.focus();}else{$('immersive').focus();dirty=true;}
+}
+$('immersive').onclick=async()=>{try{if(isImmersive())await document.exitFullscreen();else await workspace.requestFullscreen();}catch(e){status('无法进入全屏：'+e.message);}};
+document.addEventListener('fullscreenchange',onImmersiveChange);
+window.addEventListener('resize',sizeImmersive);
+workspace.addEventListener('pointermove',e=>{if(!isImmersive())return;const bounds=workspace.getBoundingClientRect();if(e.clientY>bounds.bottom-100){revealControls();}else scheduleHideControls();});
+workspace.addEventListener('pointerleave',scheduleHideControls);
+transport.addEventListener('pointerenter',()=>{controlsHovered=true;revealControls();});
+transport.addEventListener('pointerleave',()=>{controlsHovered=false;scheduleHideControls();});
+transport.addEventListener('pointerdown',()=>{keyboardControls=false;controlsHeld=true;revealControls();});
+for(const event of ['pointerup','pointercancel'])document.addEventListener(event,()=>{controlsHeld=false;scheduleHideControls();});
+transport.addEventListener('focusin',revealControls);transport.addEventListener('focusout',scheduleHideControls);
+workspace.addEventListener('keydown',e=>{if(isImmersive()&&e.key==='Tab'){keyboardControls=true;revealControls();}});
+immersiveCanvas.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'){revealControls();scheduleHideControls();}});
+$('frameToggle').onclick=()=>{showExportFrame=!showExportFrame;$('exportFrame').hidden=!showExportFrame;$('frameToggle').textContent=showExportFrame?'隐藏取景框':'显示取景框';$('frameToggle').setAttribute('aria-pressed',String(showExportFrame));};
 $('realtime').onclick=()=>{$('speed').value='1';$('trail').value='off';changed();};
 $('startrail').onclick=()=>{$('speed').value='120';$('trail').value='all';changed();};
 $('compose').onclick=()=>{playing=false;compose();};
 $('play').onclick=()=>{if(elapsed>=settings.duration){elapsed=0;clearTrails();}playing=!playing;lastNow=performance.now();dirty=true;updateUI();};
 $('restart').onclick=()=>{elapsed=0;clearTrails();bgKey='';dirty=true;};
 $('timeline').oninput=()=>{playing=false;elapsed=Number($('timeline').value);dirty=true;};
-$('snapshot').onclick=()=>{render();canvas.toBlob(blob=>{const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`星野-${canvas.width}x${canvas.height}-取景.png`;a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);});};
-canvas.onpointerdown=e=>{if(recording||pointer||!e.isPrimary)return;playing=false;pointer={x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);canvas.focus();updateUI();};
-canvas.onpointermove=e=>{if(!pointer||recording)return;const scale=settings.fov/canvas.clientWidth;cam=A.turnCamera(cam,(e.clientX-pointer.x)*scale,(e.clientY-pointer.y)*scale);pointer={x:e.clientX,y:e.clientY};syncView();};
+$('snapshot').onclick=()=>{renderScene();if(isImmersive())dirty=true;canvas.toBlob(blob=>{const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`星野-${canvas.width}x${canvas.height}-取景.png`;a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);});};
+canvas.onpointerdown=e=>{if(recording||pointer||!e.isPrimary)return;playing=false;pointer={x:e.clientX,y:e.clientY};const surface=e.currentTarget||canvas;surface.setPointerCapture(e.pointerId);surface.focus();updateUI();};
+canvas.onpointermove=e=>{if(!pointer||recording)return;const surface=e.currentTarget||canvas,scale=(surface===immersiveCanvas&&immersiveGeometry?immersiveGeometry.fov:settings.fov)/surface.clientWidth;cam=A.turnCamera(cam,(e.clientX-pointer.x)*scale,(e.clientY-pointer.y)*scale);pointer={x:e.clientX,y:e.clientY};syncView();};
 canvas.onpointerup=canvas.onpointercancel=canvas.onlostpointercapture=()=>{pointer=null;dirty=true;};
-canvas.addEventListener('wheel',e=>{e.preventDefault();if(recording)return;settings.fov=Math.round(clamp(settings.fov+e.deltaY*.04,30,120));syncView();},{passive:false});
+function zoomSky(e){e.preventDefault();if(recording)return;settings.fov=Math.round(clamp(settings.fov+e.deltaY*.04,30,120));syncView();}canvas.addEventListener('wheel',zoomSky,{passive:false});
 canvas.onkeydown=e=>{if(recording)return;if(settings.spaceMode==='space'&&moveKeys[e.key.toLowerCase()]){e.preventDefault();moveSpace(...moveKeys[e.key.toLowerCase()]);return;}const d={ArrowLeft:[1,0,0],ArrowRight:[-1,0,0],ArrowUp:[0,1,0],ArrowDown:[0,-1,0],q:[0,0,-1],e:[0,0,1]}[e.key];if(!d)return;e.preventDefault();cam=A.turnCamera(cam,...d.map(v=>v*(e.shiftKey?5:1)));syncView();};
+for(const name of ['onpointerdown','onpointermove','onpointerup','onpointercancel','onlostpointercapture','onkeydown'])immersiveCanvas[name]=canvas[name];
+immersiveCanvas.addEventListener('wheel',zoomSky,{passive:false});
 $('resetPreset').onclick=()=>{const preset={spaceMode:'sky',fly:false,place:'Cougar 附近 · 华盛顿州',lat:46.05,lon:-122.30,date:'2026-07-18T22:54:00',offset:-7,speed:1,trail:'off',duration:60,aspect:'wide',magnitude:7,milky:1,meteors:2,seed:718};for(const [k,v]of Object.entries(preset)){if($(k).type==='checkbox')$(k).checked=v;else $(k).value=v;}changed();compose();};
 function lock(yes){$('controls').disabled=yes;for(const id of ['play','restart','timeline','snapshot','resetPreset','export','immersive','chooseSave'])$(id).disabled=yes;$('cancel').hidden=!yes;$('cancel').textContent='取消导出';$('exportProgress').hidden=!yes;}
 function finishRecording(cancel){if(!recording)return;playing=false;recording.cancel=cancel;if(cancel&&recording.controller){recording.controller.abort();if(recording.jobId)fetch('/api/jobs/'+recording.jobId,{method:'DELETE',headers:{'X-StarSky-Token':window.STARSKY_SERVICE.token}}).catch(()=>{});}if(recording.offline)return;if(recording.rec.state!=='inactive')recording.rec.stop();}

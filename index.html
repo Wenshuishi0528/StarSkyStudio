@@ -3,11 +3,12 @@
 <body>
 <header><div class="brand"><span class="mark">✧</span><strong>星野</strong><span>STARSKY STUDIO</span><small>360° 全景星空</small></div><button id="resetPreset">↗ Cougar · 夏夜预设</button></header>
 <main>
-<section class="workspace">
+<section class="workspace" id="workspace">
+ <canvas id="immersiveSky" aria-label="全屏星空，拖动环顾，滚轮缩放" tabindex="0"></canvas><div id="exportFrame" aria-hidden="true"><span>视频取景范围</span></div>
  <div class="scene-top"><div><span class="eyebrow">YOUR WINDOW INTO THE NIGHT</span><h1>把这一刻，留给星空。</h1></div><span class="pill" id="modeBadge">● 实时 · 1×</span></div>
  <div class="stage" id="stage"><canvas id="sky" width="1280" height="720" aria-label="三维星空取景画面，拖动环顾，滚轮缩放" tabindex="0"></canvas><div id="guide" class="guide"><i></i><i></i><i></i><i></i></div><span class="frame-tag" id="frameTag">16:9 · 1280 × 720</span></div>
  <div class="scene-caption"><span id="viewReadout">加载星表…</span><span>任意方向拖动 · 滚轮缩放 · 方向键微调 · Q/E旋转</span></div>
- <div class="transport"><button id="play" class="primary">▶ 播放</button><button id="restart" title="回到片段开始">↺ 重播</button><span id="elapsed">00:00 / 01:00</span><input id="timeline" aria-label="片段进度" type="range" min="0" max="60" step="0.1" value="0"><button id="snapshot">保存图片</button><button id="immersive">沉浸取景</button></div>
+ <div class="transport" id="transport" aria-label="播放与取景控制"><button id="play" class="primary">▶ 播放</button><button id="restart" title="回到片段开始">↺ 重播</button><span id="elapsed">00:00 / 01:00</span><input id="timeline" aria-label="片段进度" type="range" min="0" max="60" step="0.1" value="0"><button id="snapshot">保存图片</button><button id="frameToggle" aria-pressed="true" type="button">隐藏取景框</button><button id="immersive">沉浸取景</button></div>
  <div class="clock-row"><span>天空时间 <strong id="skyTime"></strong></span><span id="spanReadout"></span></div>
  <p id="status" role="status">正在准备星空…</p>
  <div class="notes"><span>✦ 完整球形星空 · 无地平线遮挡</span><span>银河艺术化显示 · 流星为模拟效果</span></div>
@@ -55,4 +56,4 @@
  </section></fieldset>
  <div class="export-panel"><button id="chooseSave" class="wide">选择保存位置…</button><small id="saveLocation" role="status" aria-live="polite">未选择；导出时选择文件名和文件夹</small><button id="export" class="primary wide">↓ 导出视频</button><button id="cancel" class="wide" hidden>取消录制</button><a id="download" hidden>下载视频</a><progress id="exportProgress" value="0" max="1" hidden></progress></div>
  <details><summary>精度与数据来源</summary><p>恒星采用 XHIP 星表的 d3-celestial GeoJSON 数据（J2000），含近似岁差修正。三维漫游采用HYG距离与空间速度；太阳系采用Astronomy Engine。收录太阳、八大行星、冥王星、月球与木星四大卫星，不包含完整卫星目录。未校正大气折射、光行时与相对论效应。银河纹理为程序化示意。全景模式不遮挡下半球，也不模拟白昼亮度；时间和地点决定星空朝向，不代表地面实拍可见性。</p><a href="https://github.com/ofrohn/d3-celestial" target="_blank" rel="noreferrer">d3-celestial / XHIP 数据来源 ↗</a><p>本地运行，H.265/H.264在本机编码，文件不上传云端。请用“启动星野.command”启用完整导出。当前版本没有把原照片作为天空贴图。</p></details>
-</aside></main><script src="data/stars.js"></script><script src="astro.js"></script><script src="vendor/astronomy.js"></script><script src="data/stars3d.js"></script><script src="universe.js"></script><script src="space-renderer.js"></script><script src="mp4.js"></script><script src="app.js"></script></body></html>
+</aside></main><script src="data/stars.js"></script><script src="astro.js"></script><script src="vendor/astronomy.js"></script><script src="data/stars3d.js"></script><script src="universe.js"></script><script src="space-renderer.js"></script><script src="mp4.js"></script><script src="immersive.js"></script><script src="app.js"></script></body></html>

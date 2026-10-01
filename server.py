@@ -136,7 +136,7 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_header('Cache-Control', 'no-store')
             self.end_headers()
             self.wfile.write(body)
-        elif path in ('/vendor/astronomy.js', '/data/stars3d.js', '/universe.js', '/space-renderer.js', '/style.css', '/astro.js', '/app.js', '/mp4.js', '/data/stars.js', '/data/D3-CELESTIAL-LICENSE.txt'):
+        elif path in ('/immersive.js', '/vendor/astronomy.js', '/data/stars3d.js', '/universe.js', '/space-renderer.js', '/style.css', '/astro.js', '/app.js', '/mp4.js', '/data/stars.js', '/data/D3-CELESTIAL-LICENSE.txt'):
             super().do_GET()
         else:
             self.send_error(404)

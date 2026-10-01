@@ -6,11 +6,11 @@ function element(id,tag='',value=''){const el={id,tagName:tag.toUpperCase(),valu
 for(const m of html.matchAll(/<(\w+)\b([^>]*\bid="([^"]+)"[^>]*)>/g)){const [,tag,attrs,id]=m;elements[id]=element(id,tag,attrs.match(/\bvalue="([^"]*)"/)?.[1]||'');elements[id].type=attrs.match(/\btype="([^"]*)"/)?.[1];elements[id].checked=/\bchecked\b/.test(attrs);}
 for(const m of html.matchAll(/<select\b[^>]*id="([^"]+)"[^>]*>([\s\S]*?)<\/select>/g)){const opts=[...m[2].matchAll(/<option value="([^"]+)"([^>]*)>/g)];elements[m[1]].value=(opts.find(o=>o[2].includes('selected'))||opts[0])[1];}
 elements.controls.querySelectorAll=()=>Object.values(elements).filter(e=>['INPUT','SELECT'].includes(e.tagName));
-const sandbox={console,performance,Math,Date,Uint8ClampedArray,setTimeout,requestAnimationFrame(){},document:{getElementById:id=>elements[id],createElement:tag=>element('',tag),addEventListener(){}},window:{addEventListener(){}}};
+const sandbox={console,performance,Math,Date,Uint8ClampedArray,setTimeout,clearTimeout,requestAnimationFrame(){},document:{getElementById:id=>elements[id],createElement:tag=>element('',tag),addEventListener(){}},window:{addEventListener(){}}};
 sandbox.globalThis=sandbox;sandbox.window.STAR_CATALOG=[];
 vm.createContext(sandbox);vm.runInContext(fs.readFileSync(__dirname+'/data/stars.js','utf8'),sandbox);sandbox.STAR_CATALOG=sandbox.window.STAR_CATALOG;
 vm.runInContext(fs.readFileSync(__dirname+'/astro.js','utf8'),sandbox);
-for(const file of ['vendor/astronomy.js','data/stars3d.js','universe.js','space-renderer.js']){vm.runInContext(fs.readFileSync(__dirname+'/'+file,'utf8'),sandbox);if(file==='vendor/astronomy.js')sandbox.Astronomy=sandbox.window.Astronomy;}
+for(const file of ['vendor/astronomy.js','data/stars3d.js','universe.js','space-renderer.js','immersive.js']){vm.runInContext(fs.readFileSync(__dirname+'/'+file,'utf8'),sandbox);if(file==='vendor/astronomy.js')sandbox.Astronomy=sandbox.window.Astronomy;}
 vm.runInContext(fs.readFileSync(__dirname+'/app.js','utf8'),sandbox);
 const run=code=>vm.runInContext(code,sandbox);
 assert.equal(run('stars.length>0'),true);
@@ -72,3 +72,36 @@ console.log('PASS: UI mode switch, spatial translation, sunlit Saturn visit, det
  await elements.chooseSave.onclick();assert.match(elements.saveLocation.textContent,/Chrome/);
  console.log('PASS: 1080P dimensions, timestamped picker, independent location selection, visible unsupported-browser error.');
 })().catch(e=>{console.error(e);process.exitCode=1;});
+
+// Fullscreen projection must preserve the export frustum for every aspect.
+const {geometry}=require('./immersive.js'),A=require('./astro.js');
+for(const [sw,sh] of [[1920,1080],[1440,900],[390,844]])for(const [ow,oh] of [[1920,1080],[1080,1920],[1440,1080]]){
+ const g=geometry(sw,sh,ow,oh,92),camera=A.camera(20,40);
+ assert.ok(g.frame.x>=0&&g.frame.y>=0);assert.ok(Math.abs(g.frame.width/g.frame.height-ow/oh)<1e-12);
+ for(const v of [camera.forward,A.camera(25,45).forward,A.camera(0,30).forward]){
+  const p=A.project(v,camera,ow,oh,92),q=A.project(v,camera,g.width,g.height,g.fov);
+  assert.ok(Math.abs(q[0]-g.renderFrame.x-p[0])<1e-8);assert.ok(Math.abs(q[1]-g.renderFrame.y-p[1])<1e-8);
+ }
+}
+// Real app renderer swaps preview buffers only within a frame, then restores export state.
+elements.workspace.clientWidth=1440;elements.workspace.clientHeight=900;
+elements.workspace.classList.toggle=(name,on)=>{elements.workspace[name]=on;};
+elements.transport.contains=el=>el===elements.play;
+elements.immersiveSky.focus=()=>{sandbox.document.activeElement=elements.immersiveSky;};
+elements.frameToggle.setAttribute=()=>{};
+const outputBefore=run('JSON.stringify([W,H,settings.fov,canvas.width,canvas.height,elapsed,cam])');
+sandbox.document.fullscreenElement=elements.workspace;run('onImmersiveChange();render()');
+assert.equal(elements.immersiveSky.width,1440);assert.equal(elements.immersiveSky.height,900);
+assert.equal(run('JSON.stringify([W,H,settings.fov,canvas.width,canvas.height,elapsed,cam])'),outputBefore);
+assert.equal(elements.workspace['controls-visible'],false);
+let hide;const realTimer=sandbox.setTimeout;sandbox.setTimeout=fn=>{hide=fn;return 1;};sandbox.clearTimeout=()=>{};
+run('revealControls();scheduleHideControls()');assert.equal(elements.workspace['controls-visible'],true);hide();assert.equal(elements.workspace['controls-visible'],false);
+run('revealControls();controlsHeld=true;scheduleHideControls()');hide();assert.equal(elements.workspace['controls-visible'],true);
+run('controlsHeld=false;controlsHovered=true;scheduleHideControls()');hide();assert.equal(elements.workspace['controls-visible'],true);
+sandbox.document.activeElement=elements.play;
+run('controlsHovered=false;keyboardControls=false;scheduleHideControls()');hide();assert.equal(elements.workspace['controls-visible'],false,'pointer-focused play must not pin controls');
+run('revealControls();keyboardControls=true');sandbox.document.activeElement=elements.play;run('scheduleHideControls()');hide();assert.equal(elements.workspace['controls-visible'],true);
+elements.frameToggle.onclick();assert.equal(elements.exportFrame.hidden,true);elements.frameToggle.onclick();assert.equal(elements.exportFrame.hidden,false);
+sandbox.document.fullscreenElement=null;run('onImmersiveChange();render()');assert.equal(run('JSON.stringify([W,H,settings.fov,canvas.width,canvas.height,elapsed,cam])'),outputBefore);
+sandbox.setTimeout=realTimer;sandbox.clearTimeout=clearTimeout;
+console.log('PASS: fullscreen fills viewport, projection matches export, output state restored, overlay auto-hides and respects drag/hover/keyboard, frame toggles, exit restores editor.');
