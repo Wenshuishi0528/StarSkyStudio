@@ -10,6 +10,7 @@ const sandbox={console,performance,Math,Date,Uint8ClampedArray,setTimeout,reques
 sandbox.globalThis=sandbox;sandbox.window.STAR_CATALOG=[];
 vm.createContext(sandbox);vm.runInContext(fs.readFileSync(__dirname+'/data/stars.js','utf8'),sandbox);sandbox.STAR_CATALOG=sandbox.window.STAR_CATALOG;
 vm.runInContext(fs.readFileSync(__dirname+'/astro.js','utf8'),sandbox);
+for(const file of ['vendor/astronomy.js','data/stars3d.js','universe.js','space-renderer.js']){vm.runInContext(fs.readFileSync(__dirname+'/'+file,'utf8'),sandbox);if(file==='vendor/astronomy.js')sandbox.Astronomy=sandbox.window.Astronomy;}
 vm.runInContext(fs.readFileSync(__dirname+'/app.js','utf8'),sandbox);
 const run=code=>vm.runInContext(code,sandbox);
 assert.equal(run('stars.length>0'),true);
@@ -50,6 +51,19 @@ for(const [aspect,w,h] of [['wide',1920,1080],['photo',1440,1080],['portrait',10
  assert.equal(elements.sky.width,w);assert.equal(elements.sky.height,h);
  assert.equal(run('trails.width'),w);assert.equal(run('trails.height'),h);
 }
+// Physical-mode integration: actual UI handlers, not only pure vector helpers.
+elements.lat.value='46.05';elements.spaceMode.value='space';elements.spaceMode.listeners.change();
+assert.equal(run('settings.spaceMode'),'space');run('render()');
+const before=run('space.position.slice()');elements.moveForward.onclick();assert.ok(run('U.norm(U.sub(space.position,'+JSON.stringify(before)+'))')>.9);
+elements.destination.value='Saturn';elements.visitTarget.onclick();run('render()');
+assert.equal(run('settings.spaceMode'),'space');
+assert.ok(run('U.bodyView(space.target("Saturn",settings.start),space.position).phase')<Math.PI/2,'visit starts on illuminated side');
+elements.fly.checked=true;elements.fly.listeners.change();
+assert.ok(run('U.norm(U.sub(space.observer(settings.start,settings,2,cam),space.observer(settings.start,settings,0,cam)))')>1.9);
+elements.returnEarth.onclick();assert.equal(run('settings.spaceMode'),'sky');assert.equal(run('settings.fly'),false);
+elements.twinkle.value='1';elements.twinkle.listeners.change();run('render()');
+assert.equal(run('settings.twinkle'),1);
+console.log('PASS: UI mode switch, spatial translation, sunlit Saturn visit, deterministic fly-through, return to ground, and atmospheric toggle.');
 (async()=>{
  elements.lat.value='';let picked=false;
  sandbox.window.showSaveFilePicker=async options=>{picked=true;assert.match(options.suggestedName,/^星野-\d{12}-1080x1920-/);return {name:options.suggestedName};};

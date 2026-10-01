@@ -13,7 +13,19 @@
  <div class="notes"><span>✦ 完整球形星空 · 无地平线遮挡</span><span>银河艺术化显示 · 流星为模拟效果</span></div>
 </section>
 <aside>
- <fieldset id="controls"><section class="panel"><h2><span>01</span> 时间与地点</h2>
+ <fieldset id="controls"><section class="panel"><h2><span>00</span> 观察方式与太阳系</h2>
+<label>观察模式<select id="spaceMode"><option value="sky">地面环顾 · 原版星空</option><option value="space">三维漫游 · 真实距离</option></select></label>
+<div class="pair"><label>大气闪烁<select id="twinkle"><option value="0">关闭</option><option value="1">轻微</option><option value="2">明显</option></select></label><label>太阳系大小<select id="bodyScale"><option value="physical">真实角尺寸</option><option value="markers">微小天体加可见标记</option></select></label></div>
+<label><input id="solar" type="checkbox" checked> 显示太阳、行星与已收录卫星</label>
+<label>目的地<select id="destination"><option value="Sun">太阳</option><option value="Mercury">水星</option><option value="Venus">金星</option><option value="Earth">地球</option><option value="Moon">月球</option><option value="Mars">火星</option><option value="Jupiter">木星</option><option value="Io">木卫一 · Io</option><option value="Europa">木卫二 · Europa</option><option value="Ganymede">木卫三 · Ganymede</option><option value="Callisto">木卫四 · Callisto</option><option value="Saturn">土星</option><option value="Uranus">天王星</option><option value="Neptune">海王星</option><option value="Pluto">冥王星</option><option value="star:27919">参宿四 · Betelgeuse</option><option value="star:32263">天狼星 · Sirius</option><option value="star:70666">比邻星 · Proxima Centauri</option><option value="star:90979">织女星 · Vega</option><option value="star:97338">牛郎星 · Altair</option></select></label>
+<div class="pair"><button id="aimTarget" type="button">对准目的地</button><button id="visitTarget" type="button">前往附近 · 漫游</button></div>
+<label>移动步长 / 自动飞行每秒距离<select id="moveStep"><option value="0.0001">0.0001 AU · 约1.5万公里</option><option value="0.01">0.01 AU</option><option value="1" selected>1 AU</option><option value="6324.107708">0.1光年</option><option value="63241.077084">1光年</option></select></label>
+<div class="pair"><button id="moveForward" type="button">向前 W</button><button id="moveBack" type="button">向后 S</button><button id="moveLeft" type="button">向左 A</button><button id="moveRight" type="button">向右 D</button><button id="moveUp" type="button">上移 R</button><button id="moveDown" type="button">下移 F</button></div>
+<label><input id="fly" type="checkbox"> 播放 / 导出时沿当前视线自动飞行</label>
+<button id="returnEarth" type="button" class="wide">返回地面观察点</button>
+<small id="spaceInfo" role="status">地面模式支持大气闪烁；太空中自动关闭。恒星距离与亮度按星表计算。</small>
+<small>漫游相机可加速移动，不代表飞船真实运动。位置为几何位置，未校正光行时。球面着色为简化反照模型；不是观测级照片。</small>
+</section><section class="panel"><h2><span>01</span> 时间与地点</h2>
  <label>地点名称<input id="place" value="Cougar 附近 · 华盛顿州"></label>
  <div class="pair"><label>纬度（北为正）<input id="lat" type="number" min="-90" max="90" step="0.0001" value="46.05"></label><label>经度（东为正）<input id="lon" type="number" min="-180" max="180" step="0.0001" value="-122.30"></label></div>
  <label>当地起始日期与时间<input id="date" type="datetime-local" step="1" min="1900-01-01T00:00" max="2100-12-31T23:59" value="2026-07-18T22:54:00"></label>
@@ -42,5 +54,5 @@
  <small>同一种子可复现流星。优先逐帧导出30fps；生成耗时取决于画质与设备。请保持此页可见。分辨率见取景框。</small>
  </section></fieldset>
  <div class="export-panel"><button id="chooseSave" class="wide">选择保存位置…</button><small id="saveLocation" role="status" aria-live="polite">未选择；导出时选择文件名和文件夹</small><button id="export" class="primary wide">↓ 导出视频</button><button id="cancel" class="wide" hidden>取消录制</button><a id="download" hidden>下载视频</a><progress id="exportProgress" value="0" max="1" hidden></progress></div>
- <details><summary>精度与数据来源</summary><p>恒星采用 XHIP 星表的 d3-celestial GeoJSON 数据（J2000），含近似岁差修正。未包含自行、章动、大气折射、月亮及行星。银河纹理为程序化示意。全景模式不遮挡下半球，也不模拟白昼亮度；时间和地点决定星空朝向，不代表地面实拍可见性。</p><a href="https://github.com/ofrohn/d3-celestial" target="_blank" rel="noreferrer">d3-celestial / XHIP 数据来源 ↗</a><p>本地运行，H.265/H.264在本机编码，文件不上传云端。请用“启动星野.command”启用完整导出。当前版本没有把原照片作为天空贴图。</p></details>
-</aside></main><script src="data/stars.js"></script><script src="astro.js"></script><script src="mp4.js"></script><script src="app.js"></script></body></html>
+ <details><summary>精度与数据来源</summary><p>恒星采用 XHIP 星表的 d3-celestial GeoJSON 数据（J2000），含近似岁差修正。三维漫游采用HYG距离与空间速度；太阳系采用Astronomy Engine。收录太阳、八大行星、冥王星、月球与木星四大卫星，不包含完整卫星目录。未校正大气折射、光行时与相对论效应。银河纹理为程序化示意。全景模式不遮挡下半球，也不模拟白昼亮度；时间和地点决定星空朝向，不代表地面实拍可见性。</p><a href="https://github.com/ofrohn/d3-celestial" target="_blank" rel="noreferrer">d3-celestial / XHIP 数据来源 ↗</a><p>本地运行，H.265/H.264在本机编码，文件不上传云端。请用“启动星野.command”启用完整导出。当前版本没有把原照片作为天空贴图。</p></details>
+</aside></main><script src="data/stars.js"></script><script src="astro.js"></script><script src="vendor/astronomy.js"></script><script src="data/stars3d.js"></script><script src="universe.js"></script><script src="space-renderer.js"></script><script src="mp4.js"></script><script src="app.js"></script></body></html>

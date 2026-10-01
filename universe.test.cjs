@@ -1,0 +1,20 @@
+const assert=require('node:assert/strict'),U=require('./universe'),E=require('./vendor/astronomy'),{SPATIAL_STARS:rows}=require('./data/stars3d');
+const ms=Date.UTC(2026,6,19,5,54),list=U.solarSystem(ms),earth=list.find(b=>b.id==='Earth'),moon=list.find(b=>b.id==='Moon'),jupiter=list.find(b=>b.id==='Jupiter');
+assert.equal(list.length,15);assert.ok(list.every(b=>b.pos.every(Number.isFinite)&&b.radius>0));
+assert.ok(U.norm(earth.pos)>.98&&U.norm(earth.pos)<1.02);
+const lunar=U.norm(U.sub(moon.pos,earth.pos))*U.AU;assert.ok(lunar>350000&&lunar<410000);
+for(const [id,lo,hi]of [['Io',400000,445000],['Europa',640000,700000],['Ganymede',1040000,1100000],['Callisto',1800000,1950000]]){const d=U.norm(U.sub(list.find(b=>b.id===id).pos,jupiter.pos))*U.AU;assert.ok(d>lo&&d<hi,id);}
+const observer=U.earthObserver(ms,46,-122),height=U.norm(U.sub(observer,earth.pos))*U.AU;assert.ok(height>6350&&height<6380);
+const b=U.groundBasis(ms,46,-122);for(let i=0;i<3;i++)for(let j=0;j<3;j++)assert.ok(Math.abs(U.dot(b[i],b[j])-(i===j?1:0))<1e-10);
+const zenith=U.toGround(U.sub(observer,earth.pos),ms,46,-122);assert.ok(zenith[2]/U.norm(zenith)>.9999);
+const row=[1,1,'test',10,0,0,0,0,0,5,.65,10],home=U.starView(row,ms,[0,0,0]),near=U.starView(row,ms,[5*U.PC,0,0]);assert.ok(Math.abs((home.mag-near.mag)-5*Math.log10(2))<1e-10);
+assert.ok(U.starView(row,ms,[0,U.PC,0]).rel[1]<0,'translation yields parallax');
+assert.equal(U.scintillation(1,1,1,1,false),1);assert.equal(U.scintillation(1,1,1,0,true),1);assert.equal(U.scintillation(1,1,-.5,1,true),1);
+const variance=alt=>Array.from({length:300},(_,i)=>(U.scintillation(13,i/30,alt,1,true)-1)**2).reduce((a,b)=>a+b)/300;
+assert.ok(variance(.1)>variance(1));assert.equal(U.scintillation(13,3.1,.4),U.scintillation(13,3.1,.4));
+assert.ok(Math.abs(U.lambertPhase(0)-1)<1e-12);assert.ok(U.lambertPhase(Math.PI)<1e-12);
+assert.ok(rows.length>50000);assert.ok(rows.every(r=>r[11]>0&&r[11]<10000));
+const vega=rows.find(r=>r[1]===91262);assert.ok(vega[11]>7&&vega[11]<9);
+const p=U.outsideBodies(earth.pos,list);assert.ok(U.norm(U.sub(p,earth.pos))>=earth.radius);
+const jan=U.solarSystem(Date.UTC(2000,0,1,12)).find(b=>b.id==='Earth').pos;assert.ok(Math.abs(jan[0]+.177)<.005&&Math.abs(jan[1]-.887)<.005&&Math.abs(jan[2]-.385)<.005,'J2000 Earth sanity reference');
+console.log('PASS: heliocentric J2000 frame, observer zenith, lunar/Jovian distances, real-distance parallax, inverse-square magnitude, atmospheric limits, phases, catalogue sentinels and surface guard.');

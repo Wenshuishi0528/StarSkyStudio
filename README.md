@@ -10,6 +10,29 @@
 
 *界面效果示例，来自开发期间截图；当前版本另有1080P、4K和视频导出选项。 / Development screenshot; the current release also includes 1080P, 4K and video export controls.*
 
+## 新增：三维漫游与太阳系 / 3D and Solar System
+
+观察方式提供原版地面星空和真正的三维平移漫游。新增太阳、八大行星、冥王星、月球，以及木星四大卫星Io、Europa、Ganymede和Callisto，共15个太阳系天体。太阳系内只有太阳是恒星。
+
+- 选择目的地后，“对准”只转动视角；“前往附近”进入三维模式并移动到天体的向阳侧附近。目的地也包括比邻星、天狼星、织女星、牛郎星和参宿四。
+- 用界面六向按钮移动，或聚焦画布后按W/S前后、A/D左右、R/F上下。步长可选约1.5万公里、0.01 AU、1 AU、0.1光年和1光年。原有方向键/Q/E仍用于旋转。
+- “自动飞行”按所选步长每视频秒前进；重播、拖动进度条与逐帧导出使用同一路径。自由相机是可视化工具，不是相对论飞船模拟。
+- “返回地面”恢复原观察位置。大气闪烁可关闭、轻微或明显；在三维模式自动停用。太空中也停用模拟流星和地面累积星轨。
+- 默认使用真实角尺寸；“微小天体加可见标记”只提升可读性，不改变天体位置。到附近后显示简化的受光球面与相位，土星环按自转轴方向投影，并处理前后遮挡和土星投向环的阴影。
+- 3D恒星使用61,433条HYG v4.1记录：地球视星等≤8.5，或在30 pc以内；仅保留0–10,000 pc范围内非哨兵距离。未知距离没有随机补齐。位置和线性空间速度来自星表；观测方向随相机位置改变，视星等按绝对星等和距离模数更新。
+
+### 物理边界 / Model limits
+
+This is a **geometric and photometric approximation**, not a complete physical simulator. Solar-system positions use bundled Astronomy Engine 2.1.19 in heliocentric J2000 equatorial AU coordinates; ground observers use the library's Earth orientation and surface position. The engine's advertised angular accuracy does not imply equivalent close-flyby accuracy in this renderer.
+
+HYG distances include catalogue estimates and measurement uncertainty; individual parallax uncertainty is not included in this subset, so these positions must not be described as exact. Stellar velocities are linear catalogue propagation, without gravitational N-body evolution. The selected catalogue is incomplete: moving far away will not reveal every star that should become visible. Stellar surfaces/radii other than the Sun are not modeled.
+
+The renderer uses true geometry for parallax and angular radii, but star sizes/glows are display point-spread symbols and brightness is compressed for a screen. Bodies use mean spherical radii, representative colors and simplified Lambert lighting; these are not photographic textures. Rotational surface features, oblateness, mutual eclipses and rings other than Saturn are not modeled. Ring opacity, bands and shadows are simplified. No light-time, aberration or relativistic camera correction is applied.
+
+Atmospheric scintillation is a seeded, band-limited temporal brightness proxy with an airmass dependence. It stops in space and below the horizon, and uses video time rather than accelerated celestial time. It is not a weather-driven turbulence calculation. Daylight, atmospheric scattering, extinction and refraction remain unmodeled. The original full-sphere ground view intentionally shows the lower hemisphere. The procedural Milky Way remains an artistic distant background, not a volumetric galaxy; this is not a physically complete galaxy-traversal mode.
+
+New controls, pure-coordinate checks and an actual short three-dimensional H.265 export are tested locally; the 3D feature has not been included in the existing v0.1.0 release.
+
 ## 中文
 
 星野是一个在本机运行的星空取景与视频创作工具。观察者位于完整星空球的中心，可以连续转动视角、越过天顶和下半球，没有地景遮挡或图片边缘。支持设置日期、时间、经纬度和时间流速，用同一个构图生成实时星空或加速星轨。
@@ -89,7 +112,7 @@ Video generation can take longer than playback duration. Frame-by-frame output u
 
 ## 精度与数据 / Accuracy and data
 
-This is a creative prototype, not a precision observation planner. Star directions include approximate precession and sidereal-time rotation. The lower hemisphere intentionally remains visible. The Milky Way is a procedural artistic texture and meteors are simulated. The app does not model daylight brightness, the Moon, planets, terrain, atmospheric refraction, weather, light pollution, nutation or stellar proper motion. Supported dates: 1900–2100. Original HEIC photos are not included.
+This is a creative prototype, not a precision observation planner. Star directions include approximate precession and sidereal-time rotation. The lower hemisphere intentionally remains visible. The Milky Way is a procedural artistic texture and meteors are simulated. The original ground star layer does not model stellar proper motion; the new 3D layer uses catalogue space velocities. Daylight brightness, terrain, atmospheric refraction, weather and light pollution remain unmodeled. See the new model limits above for solar-system coverage. Supported dates: 1900–2100. Original HEIC photos are not included.
 
 恒星来自 [d3-celestial stars.8.json](https://github.com/ofrohn/d3-celestial/blob/master/data/stars.8.json)，其原始数据为 **XHIP: An Extended Hipparcos Compilation**, Anderson & Francis (2012), VizieR V/137D。`data/stars.js`保留HIP、J2000赤经/赤纬、星等及B−V字段。有关原始项目的数据说明见 [d3-celestial](https://github.com/ofrohn/d3-celestial#files)。
 
@@ -98,6 +121,7 @@ This is a creative prototype, not a precision observation planner. Star directio
 ```sh
 node astro.test.cjs
 node app.test.cjs
+node universe.test.cjs
 python3 server.test.py
 ```
 
