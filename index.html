@@ -43,14 +43,14 @@
  <small>视点位于星空球中心，上下左右均可连续转动。仰角是当前朝向读数，不是拖动限位。</small>
  <label class="range-label">水平视野 <output id="fovValue">90°</output><input id="fov" aria-label="水平视野" type="range" min="30" max="120" value="90"></label>
  <button id="compose" class="wide" type="button">⌖ 对准牛郎 · 织女 · 天津四</button>
- <div class="pair"><label>取景比例<select id="aspect"><option value="wide">16:9 横屏</option><option value="portrait">9:16 竖屏</option><option value="photo">4:3 照片</option></select></label><label>恒星显示深度<select id="magnitude"><option value="6">肉眼 · 6等</option><option value="7" selected>丰富 · 7等</option><option value="8.5">摄影 · 8.5等</option></select></label></div>
+ <div class="pair"><label>取景比例<select id="aspect"><option value="wide">16:9 横屏</option><option value="portrait">9:16 竖屏</option><option value="photo" selected>4:3 照片</option></select></label><label>恒星显示深度<select id="magnitude"><option value="6">肉眼 · 6等</option><option value="7">丰富 · 7等</option><option value="8.5" selected>摄影 · 8.5等</option></select></label></div>
  <label class="range-label">银河亮度 <input id="milky" type="range" min="0" max="2" step="0.05" value="1"></label>
  <div class="checks"><label><input id="labels" type="checkbox" checked> 主星标记</label><label><input id="grid" type="checkbox"> 球面方向网格</label></div>
  </section>
  <section class="panel"><h2><span>04</span> 流星与成片</h2>
- <div class="pair"><label>模拟流星<select id="meteors"><option value="0">关闭</option><option value="2" selected>偶尔 · 2颗 / 分钟</option><option value="5">丰富 · 5颗 / 分钟</option></select></label><label>随机种子<input id="seed" type="number" min="0" max="999999" step="1" value="718"></label></div>
- <div class="pair"><label>视频格式<select id="container"><option value="mp4">MP4</option><option value="mov">MOV</option></select></label><label>视频编码<select id="codec"><option value="hevc">H.265 · 默认</option><option value="h264">H.264 · 兼容优先</option></select></label></div>
- <label>输出分辨率<select id="quality"><option value="standard">标准 · 流畅预览</option><option value="1080p">1080P · 全高清</option><option value="4k">4K · 高画质输出</option></select></label><small id="qualityInfo">标准横屏1280×720 · 30fps目标帧率</small>
+ <div class="pair"><label>模拟流星<select id="meteors"><option value="0">关闭</option><option value="2">偶尔 · 2颗 / 分钟</option><option value="5" selected>丰富 · 5颗 / 分钟</option></select></label><label>随机种子<input id="seed" type="number" min="0" max="999999" step="1" value="718"></label></div>
+ <div class="pair"><label>视频格式<select id="container"><option value="mp4">MP4</option><option value="mov">MOV</option></select></label><label>视频编码<select id="codec"><option value="hevc">H.265</option><option value="h264" selected>H.264 · 默认</option></select></label></div>
+ <label>输出分辨率<select id="quality"><option value="standard">标准 · 流畅预览</option><option value="1080p">1080P · 全高清</option><option value="4k" selected>4K · 高画质输出</option></select></label><small id="settingsMemory" role="status">设置自动保存在此浏览器，下次打开恢复。</small><small id="qualityInfo">标准横屏1280×720 · 30fps目标帧率</small>
  <div class="pair"><label>成片时长（秒）<input id="duration" type="number" min="5" max="120" step="1" value="60"></label><label>导出辅助标记<select id="exportLabels"><option value="no">隐藏 · 干净画面</option><option value="yes">保留</option></select></label></div>
  <small>同一种子可复现流星。优先逐帧导出30fps；生成耗时取决于画质与设备。请保持此页可见。分辨率见取景框。</small>
  </section></fieldset>

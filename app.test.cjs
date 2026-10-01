@@ -7,6 +7,7 @@ for(const m of html.matchAll(/<(\w+)\b([^>]*\bid="([^"]+)"[^>]*)>/g)){const [,ta
 for(const m of html.matchAll(/<select\b[^>]*id="([^"]+)"[^>]*>([\s\S]*?)<\/select>/g)){const opts=[...m[2].matchAll(/<option value="([^"]+)"([^>]*)>/g)];elements[m[1]].value=(opts.find(o=>o[2].includes('selected'))||opts[0])[1];}
 elements.controls.querySelectorAll=()=>Object.values(elements).filter(e=>['INPUT','SELECT'].includes(e.tagName));
 const sandbox={console,performance,Math,Date,Uint8ClampedArray,setTimeout,clearTimeout,requestAnimationFrame(){},document:{getElementById:id=>elements[id],createElement:tag=>element('',tag),addEventListener(){}},window:{addEventListener(){}}};
+const preferenceStore=new Map();sandbox.window.localStorage={getItem:k=>preferenceStore.get(k)||null,setItem:(k,v)=>preferenceStore.set(k,v)};
 sandbox.globalThis=sandbox;sandbox.window.STAR_CATALOG=[];
 vm.createContext(sandbox);vm.runInContext(fs.readFileSync(__dirname+'/data/stars.js','utf8'),sandbox);sandbox.STAR_CATALOG=sandbox.window.STAR_CATALOG;
 vm.runInContext(fs.readFileSync(__dirname+'/astro.js','utf8'),sandbox);
@@ -14,6 +15,20 @@ for(const file of ['vendor/astronomy.js','data/stars3d.js','universe.js','space-
 vm.runInContext(fs.readFileSync(__dirname+'/app.js','utf8'),sandbox);
 const run=code=>vm.runInContext(code,sandbox);
 assert.equal(run('stars.length>0'),true);
+assert.equal(elements.quality.value,'4k');assert.equal(elements.magnitude.value,'8.5');assert.equal(elements.aspect.value,'photo');assert.equal(elements.meteors.value,'5');assert.equal(elements.codec.value,'h264');
+assert.equal(elements.sky.width,3840);assert.equal(elements.sky.height,2880);
+const savedDefault=preferenceStore.get('starsky.preferences.v1');
+elements.quality.value='standard';elements.codec.value='hevc';run('restorePreferences()');
+assert.equal(elements.quality.value,'4k');assert.equal(elements.codec.value,'h264');
+run('cam=A.camera(44,55,12);syncView()');
+const savedView=JSON.parse(preferenceStore.get('starsky.preferences.v1'));assert.equal(savedView.fields.az,'44.0');
+elements.az.value='10';run('restorePreferences();changed({view:true})');assert.ok(Math.abs(run('A.cameraAngles(cam).az')-44)<1e-8);
+preferenceStore.set('starsky.preferences.v1','{broken');assert.equal(run('restorePreferences()'),false);
+preferenceStore.set('starsky.preferences.v1',savedDefault);run('restorePreferences();changed({view:true})');
+const setItem=sandbox.window.localStorage.setItem;sandbox.window.localStorage.setItem=()=>{throw Error('blocked');};run('savePreferences()');assert.match(elements.settingsMemory.textContent,/未允许/);sandbox.window.localStorage.setItem=setItem;
+console.log('PASS: requested defaults, preference round trip, camera restoration, corrupt storage and blocked storage.');
+elements.quality.value='standard';elements.quality.listeners.change();
+
 // The entire previously hidden hemisphere must render, without the old RGB(3,7,10) mask.
 run('cam=A.camera(196.7,-60);syncView();render()');
 assert.equal(run('stars.filter(s=>inside(project(s.v))).length>100'),true);

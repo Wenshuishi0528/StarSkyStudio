@@ -43,7 +43,7 @@ New controls, pure-coordinate checks and an actual short three-dimensional H.265
 - 41,411条恒星记录，主星标记，一键对准牛郎星、织女星和天津四。
 - 时间流速与轨迹保留独立控制，可复现的模拟流星。
 - 标准、1080P、4K输出；横屏、竖屏和4:3取景。
-- MP4 / MOV；默认H.265，可选H.264。无WebM成片选项。
+- MP4 / MOV；默认H.264，可选H.265。无WebM成片选项。
 - 原生保存窗口选择文件名与文件夹。文件名包含本地导出时间，精确到分钟，如 `星野-202609302227-1920x1080-60秒-H265.mp4`。
 - 优先逐帧生成30fps，再在本机编码；显示编码进度、帧数和耗时，支持取消。
 
@@ -74,7 +74,7 @@ New controls, pure-coordinate checks and an actual short three-dimensional H.265
 
 ### 操作与时间
 
-拖动环顾，滚轮缩放，方向键微调，Q/E旋转，Shift加速微调。“画面回正”清除倾斜；“沉浸取景”让星空铺满整个屏幕；鼠标移到底部显示播放与进度条，离开约1.4秒后隐藏。可开关的视频取景框标示实际导出范围，全屏不会改变输出比例或分辨率。Escape退出，Tab可唤出键盘操作控件。日期、经纬度、UTC偏移或速度变更会重置片段；一般画面调整保留进度。刷新页面会恢复默认设置。
+拖动环顾，滚轮缩放，方向键微调，Q/E旋转，Shift加速微调。“画面回正”清除倾斜；“沉浸取景”让星空铺满整个屏幕；鼠标移到底部显示播放与进度条，离开约1.4秒后隐藏。可开关的视频取景框标示实际导出范围，全屏不会改变输出比例或分辨率。Escape退出，Tab可唤出键盘操作控件。日期、经纬度、UTC偏移或速度变更会重置片段；一般画面调整保留进度。设置会自动保存在当前浏览器的本机网址中，刷新或重开后恢复，包括取景方向、时间地点和输出选项。首次使用默认4K、8.5等恒星、4:3、丰富流星、H.264。播放进度与文件保存授权不保存；更换浏览器、端口或清除网站数据后会重新使用默认值。
 
 默认60秒，可设5–120秒。实时模式为1×点状星空，星轨预设为120×并持续累积：60秒成片对应两小时天空变化。**UTC偏移需手动考虑当地夏令时**。Cougar预设为2026-07-18 22:54，UTC−7，坐标为附近近似值，并非核实后的精确拍摄点。
 
@@ -90,7 +90,7 @@ StarSky Studio is a local sky-composition and video-creation tool. Its camera si
 - 41,411 star records, bright-star labels and Summer Triangle framing.
 - Independent time speed and trail retention; reproducible simulated meteors.
 - Standard, 1080P and 4K rendering in landscape, portrait and 4:3 formats (dimensions above).
-- MP4 / MOV output, default H.265 with optional H.264. No WebM final output.
+- MP4 / MOV output, default H.264 with optional H.265. No WebM final output.
 - Native save dialog and minute-precision local timestamps in filenames.
 - Frame-by-frame 30fps generation when supported, local encoding, progress reporting and cancellation.
 

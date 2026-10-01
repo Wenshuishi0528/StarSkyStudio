@@ -9,6 +9,33 @@ let liveBasis,cam=A.camera(100,60),pointer=null,W=1280,H=720,lastDraw=0,preparin
 const space=new SpaceRenderer(), U=Universe;
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const status=t=>$('status').textContent=t;
+
+const preferenceKey='starsky.preferences.v1';let preferencesReady=false;
+function savePreferences(){
+ if(!preferencesReady)return;
+ try{
+  const fields={};for(const el of $('controls').querySelectorAll('input,select')){
+   if(!el.checkValidity())return;
+   fields[el.id]=el.type==='checkbox'?el.checked:el.value;
+  }
+  window.localStorage.setItem(preferenceKey,JSON.stringify({version:1,fields,position:space.position,frame:showExportFrame}));
+  $('settingsMemory').textContent='设置已自动保存，下次打开恢复。';
+ }catch(e){$('settingsMemory').textContent='浏览器未允许保存设置；当前设置仍可使用。';}
+}
+function restorePreferences(){
+ try{
+  const saved=JSON.parse(window.localStorage.getItem(preferenceKey)||'null');if(!saved||saved.version!==1||!saved.fields)return false;
+  for(const el of $('controls').querySelectorAll('input,select')){
+   const value=saved.fields[el.id];if(el.type==='checkbox'){if(typeof value==='boolean')el.checked=value;continue;}
+   if(typeof value!=='string')continue;
+   const old=el.value;el.value=value;if(!el.value||!el.checkValidity())el.value=old;
+  }
+  if(Array.isArray(saved.position)&&saved.position.length===3&&saved.position.every(Number.isFinite))space.position=saved.position;
+  if(saved.frame===false)$('frameToggle').onclick();
+  return true;
+ }catch(e){return false;}
+}
+
 function starColor(bv){bv=Number(bv);return bv>.9?'#ffce9e':bv>.4?'#fff0dc':bv<.1?'#c0d7ff':'#e5ecff';}
 function readSettings(){
  const ids=['lat','lon','date','offset','az','alt','roll','seed','duration'];
@@ -40,7 +67,7 @@ function changed({reset=true,view=false}={}){try{const next=readSettings(),old=s
  }
  if(view)cam=A.camera(settings.az,settings.alt,settings.roll);
  if(old.start!==settings.start||old.magnitude!==settings.magnitude)buildStars();
- buildMeteors();if(old.aspect!==settings.aspect||old.quality!==settings.quality)resize();clearTrails();bgKey='';dirty=true;if(isImmersive())sizeImmersive();updateUI();status(reset?'已更新片段起点。':'已保留当前进度，画面参数已更新。');}catch(e){status(e.message);}}
+ buildMeteors();if(old.aspect!==settings.aspect||old.quality!==settings.quality)resize();clearTrails();bgKey='';dirty=true;if(isImmersive())sizeImmersive();updateUI();savePreferences();status(reset?'已更新片段起点。':'已保留当前进度，画面参数已更新。');}catch(e){status(e.message);}}
 function project(v,b=liveBasis){return A.project(A.horizontal(v,b),cam,W,H,settings.fov);}
 function inside(p,pad=8){return p&&p[0]>-pad&&p[0]<W+pad&&p[1]>-pad&&p[1]<H+pad;}
 function refreshBackground(ms){
@@ -101,7 +128,7 @@ function updateUI(){
 }
 function frame(now){if(playing&&now-lastDraw<31){requestAnimationFrame(frame);return;}lastDraw=now;if(!lastNow)lastNow=now;const dt=(now-lastNow)/1000;lastNow=now;if(playing){elapsed=Math.min(settings.duration,elapsed+dt);dirty=true;}if(dirty){render();updateUI();}if(playing&&elapsed>=settings.duration){playing=false;if(recording)finishRecording(false);updateUI();}requestAnimationFrame(frame);}
 function compose(){const b=settings.spaceMode==='space'?[[1,0,0],[0,1,0],[0,0,1]]:A.basis(settings.start+elapsed*settings.speed*1000,settings.lat,settings.lon),target=stars.filter(s=>[91262,97649,102098].includes(s.id));const v=[0,0,0];for(const s of target){const h=A.horizontal(s.v,b);for(let i=0;i<3;i++)v[i]+=h[i];}const n=Math.hypot(...v);cam=A.camera(A.wrap(Math.atan2(v[0],v[1])/D),Math.asin(clamp(v[2]/n,-1,1))/D);settings.fov=settings.aspect==='portrait'?75:92;syncView();status('已对准夏季大三角，可向任意方向继续转动。');}
-function syncView(){Object.assign(settings,A.cameraAngles(cam));for(const id of ['az','alt','roll'])$(id).value=settings[id].toFixed(1);$('fov').value=settings.fov;clearTrails();bgKey='';dirty=true;if(isImmersive())sizeImmersive();updateUI();}
+function syncView(){Object.assign(settings,A.cameraAngles(cam));for(const id of ['az','alt','roll'])$(id).value=settings[id].toFixed(1);$('fov').value=settings.fov;clearTrails();bgKey='';dirty=true;if(isImmersive())sizeImmersive();updateUI();savePreferences();}
 for(const el of $('controls').querySelectorAll('input,select')){
  const onChange=()=>{if(['codec','container'].includes(el.id)){saveHandle=null;$('saveLocation').textContent='格式已改变，请重新选择保存位置';}changed({reset:['lat','lon','date','offset','speed'].includes(el.id),view:['az','alt','roll'].includes(el.id)});};
  el.addEventListener(el.type==='range'?'input':'change',onChange);
@@ -109,7 +136,7 @@ for(const el of $('controls').querySelectorAll('input,select')){
 
 const moveKeys={w:['forward',1],s:['forward',-1],a:['right',-1],d:['right',1],r:['up',1],f:['up',-1]};
 function aimAtTarget(){const ms=settings.start+elapsed*settings.speed*1000,target=space.target($('destination').value,ms);if(!target)return;const observer=space.observer(ms,settings,elapsed,cam),rel=U.sub(target.pos,observer),v=settings.spaceMode==='space'?rel:U.toGround(rel,ms,settings.lat,settings.lon);cam=A.camera(A.wrap(Math.atan2(v[0],v[1])/D),Math.asin(v[2]/U.norm(v))/D);syncView();status('已对准 '+target.name+' · 距离 '+U.formatDistance(U.norm(rel)));}
-function moveSpace(axis,sign){if(recording)return;if(settings.spaceMode!=='space'){status('请先切换到三维漫游模式。');return;}playing=false;const ms=settings.start+elapsed*settings.speed*1000;const current=space.observer(ms,settings,elapsed,cam);space.position=current;space.move(cam[axis],sign*settings.moveStep,ms,settings);if(settings.fly)space.position=U.sub(space.position,U.scale(cam.forward,settings.moveStep*elapsed));clearTrails();dirty=true;updateUI();}
+function moveSpace(axis,sign){if(recording)return;if(settings.spaceMode!=='space'){status('请先切换到三维漫游模式。');return;}playing=false;const ms=settings.start+elapsed*settings.speed*1000;const current=space.observer(ms,settings,elapsed,cam);space.position=current;space.move(cam[axis],sign*settings.moveStep,ms,settings);if(settings.fly)space.position=U.sub(space.position,U.scale(cam.forward,settings.moveStep*elapsed));clearTrails();dirty=true;updateUI();savePreferences();}
 for(const [id,axis,sign]of [['moveForward','forward',1],['moveBack','forward',-1],['moveLeft','right',-1],['moveRight','right',1],['moveUp','up',1],['moveDown','up',-1]])$(id).onclick=()=>moveSpace(axis,sign);
 $('aimTarget').onclick=()=>{playing=false;aimAtTarget();};
 $('visitTarget').onclick=()=>{if(recording)return;playing=false;const ms=settings.start+elapsed*settings.speed*1000;$('spaceMode').value='space';$('fly').checked=false;changed({reset:false});space.visit($('destination').value,ms,settings);aimAtTarget();};
@@ -165,7 +192,7 @@ for(const event of ['pointerup','pointercancel'])document.addEventListener(event
 transport.addEventListener('focusin',revealControls);transport.addEventListener('focusout',scheduleHideControls);
 workspace.addEventListener('keydown',e=>{if(isImmersive()&&e.key==='Tab'){keyboardControls=true;revealControls();}});
 immersiveCanvas.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'){revealControls();scheduleHideControls();}});
-$('frameToggle').onclick=()=>{showExportFrame=!showExportFrame;$('exportFrame').hidden=!showExportFrame;$('frameToggle').textContent=showExportFrame?'隐藏取景框':'显示取景框';$('frameToggle').setAttribute('aria-pressed',String(showExportFrame));};
+$('frameToggle').onclick=()=>{showExportFrame=!showExportFrame;$('exportFrame').hidden=!showExportFrame;$('frameToggle').textContent=showExportFrame?'隐藏取景框':'显示取景框';$('frameToggle').setAttribute('aria-pressed',String(showExportFrame));savePreferences();};
 $('realtime').onclick=()=>{$('speed').value='1';$('trail').value='off';changed();};
 $('startrail').onclick=()=>{$('speed').value='120';$('trail').value='all';changed();};
 $('compose').onclick=()=>{playing=false;compose();};
@@ -180,7 +207,7 @@ function zoomSky(e){e.preventDefault();if(recording)return;settings.fov=Math.rou
 canvas.onkeydown=e=>{if(recording)return;if(settings.spaceMode==='space'&&moveKeys[e.key.toLowerCase()]){e.preventDefault();moveSpace(...moveKeys[e.key.toLowerCase()]);return;}const d={ArrowLeft:[1,0,0],ArrowRight:[-1,0,0],ArrowUp:[0,1,0],ArrowDown:[0,-1,0],q:[0,0,-1],e:[0,0,1]}[e.key];if(!d)return;e.preventDefault();cam=A.turnCamera(cam,...d.map(v=>v*(e.shiftKey?5:1)));syncView();};
 for(const name of ['onpointerdown','onpointermove','onpointerup','onpointercancel','onlostpointercapture','onkeydown'])immersiveCanvas[name]=canvas[name];
 immersiveCanvas.addEventListener('wheel',zoomSky,{passive:false});
-$('resetPreset').onclick=()=>{const preset={spaceMode:'sky',fly:false,place:'Cougar 附近 · 华盛顿州',lat:46.05,lon:-122.30,date:'2026-07-18T22:54:00',offset:-7,speed:1,trail:'off',duration:60,aspect:'wide',magnitude:7,milky:1,meteors:2,seed:718};for(const [k,v]of Object.entries(preset)){if($(k).type==='checkbox')$(k).checked=v;else $(k).value=v;}changed();compose();};
+$('resetPreset').onclick=()=>{const preset={spaceMode:'sky',fly:false,place:'Cougar 附近 · 华盛顿州',lat:46.05,lon:-122.30,date:'2026-07-18T22:54:00',offset:-7,speed:1,trail:'off',duration:60,aspect:'photo',magnitude:8.5,milky:1,meteors:5,seed:718};for(const [k,v]of Object.entries(preset)){if($(k).type==='checkbox')$(k).checked=v;else $(k).value=v;}changed();compose();};
 function lock(yes){$('controls').disabled=yes;for(const id of ['play','restart','timeline','snapshot','resetPreset','export','immersive','chooseSave'])$(id).disabled=yes;$('cancel').hidden=!yes;$('cancel').textContent='取消导出';$('exportProgress').hidden=!yes;}
 function finishRecording(cancel){if(!recording)return;playing=false;recording.cancel=cancel;if(cancel&&recording.controller){recording.controller.abort();if(recording.jobId)fetch('/api/jobs/'+recording.jobId,{method:'DELETE',headers:{'X-StarSky-Token':window.STARSKY_SERVICE.token}}).catch(()=>{});}if(recording.offline)return;if(recording.rec.state!=='inactive')recording.rec.stop();}
 function exportTimestamp(now=new Date()){
@@ -278,4 +305,4 @@ $('export').onclick=async()=>{
 $('cancel').onclick=()=>finishRecording(true);
 document.addEventListener('visibilitychange',()=>{if(document.hidden){if(recording)finishRecording(true);playing=false;lastNow=0;dirty=true;}});
 window.addEventListener('beforeunload',e=>{if(recording){e.preventDefault();e.returnValue='';}});
-try{changed();compose();status(`360°完整球形星空 · ${STAR_CATALOG.length.toLocaleString()}颗恒星。上下左右均可连续转动。`);requestAnimationFrame(frame);}catch(e){status('初始化失败：'+e.message);}
+try{const restored=restorePreferences();changed({view:restored});if(!restored)compose();preferencesReady=true;savePreferences();status(`360°完整球形星空 · ${STAR_CATALOG.length.toLocaleString()}颗恒星。上下左右均可连续转动。`);requestAnimationFrame(frame);}catch(e){status('初始化失败：'+e.message);}
