@@ -1,14 +1,14 @@
 # 星野 · StarSky Studio
 
-**从地球视角探索完整的360°星空，创作实时星空与星轨视频。**
+**从地球环顾360°星空，或进入三维空间漫游，创作实时星空与星轨视频。**
 
-**Explore a full 360° sky from an Earth-based viewpoint and create real-time sky and star-trail videos.**
+**Explore a full 360° sky from Earth or travel through 3D space, and create real-time sky and star-trail videos.**
 
 [![License: CC BY 4.0](https://img.shields.io/badge/License-CC_BY_4.0-lightgrey.svg)](LICENSE)
 
 ![星野星轨取景界面 / StarSky Studio star-trail composition](docs/preview.jpeg)
 
-*界面效果示例，来自开发期间截图；当前版本另有1080P、4K和视频导出选项。 / Development screenshot; the current release also includes 1080P, 4K and video export controls.*
+*早期星轨界面示例。v0.2.0另有三维漫游、太阳系、沉浸全屏和自动保存设置。 / Early star-trail interface. v0.2.0 also adds 3D navigation, the Solar System, immersive fullscreen and saved settings.*
 
 ## 新增：三维漫游与太阳系 / 3D and Solar System
 
@@ -31,7 +31,7 @@ The renderer uses true geometry for parallax and angular radii, but star sizes/g
 
 Atmospheric scintillation is a seeded, band-limited temporal brightness proxy with an airmass dependence. It stops in space and below the horizon, and uses video time rather than accelerated celestial time. It is not a weather-driven turbulence calculation. Daylight, atmospheric scattering, extinction and refraction remain unmodeled. The original full-sphere ground view intentionally shows the lower hemisphere. The procedural Milky Way remains an artistic distant background, not a volumetric galaxy; this is not a physically complete galaxy-traversal mode.
 
-New controls, pure-coordinate checks and an actual short three-dimensional H.265 export are tested locally; the 3D feature has not been included in the existing v0.1.0 release.
+These features are included in v0.2.0. Coordinate/rendering checks and a short three-dimensional H.265 export have passed locally. Model limits still apply.
 
 ## 中文
 
@@ -46,6 +46,9 @@ New controls, pure-coordinate checks and an actual short three-dimensional H.265
 - MP4 / MOV；默认H.264，可选H.265。无WebM成片选项。
 - 原生保存窗口选择文件名与文件夹。文件名包含本地导出时间，精确到分钟，如 `星野-202609302227-1920x1080-60秒-H265.mp4`。
 - 优先逐帧生成30fps，再在本机编码；显示编码进度、帧数和耗时，支持取消。
+- 三维恒星距离与平移漫游，太阳系天体及可选的大气闪烁。
+- 全屏星空，底部播放控制条自动隐藏，可开关成片取景框。
+- 自动保存设置；首次默认4K、8.5等恒星、4:3、丰富流星和H.264。
 
 ### 运行
 
@@ -93,6 +96,9 @@ StarSky Studio is a local sky-composition and video-creation tool. Its camera si
 - MP4 / MOV output, default H.264 with optional H.265. No WebM final output.
 - Native save dialog and minute-precision local timestamps in filenames.
 - Frame-by-frame 30fps generation when supported, local encoding, progress reporting and cancellation.
+- Distance-based stellar navigation, Solar System bodies and optional ground-view scintillation.
+- Immersive fullscreen sky with auto-hiding playback controls and a toggleable export frame.
+- Automatically saved settings; initial defaults are 4K, magnitude 8.5, 4:3, rich meteors and H.264.
 
 ### Quick start
 
@@ -104,7 +110,9 @@ python3 server.py
 
 On macOS you can also double-click `启动星野.command`. Open the URL printed by the server in desktop Chrome or Edge. Keep the terminal open; press Ctrl+C to stop. The server binds only to localhost, normally port 8765, and chooses another port if occupied. No cloud upload is involved. Opening `index.html` directly supports preview only; complete video export requires the local server. macOS has been tested; other platforms are not yet verified. The application UI is currently Chinese.
 
-Drag to look around, scroll to zoom, use arrow keys for fine adjustments and Q/E for roll. Shift increases keyboard step size. Select a resolution, container and codec, choose a destination, then export. Embedded chat browsers may not support the save picker; use a standalone browser window. Keep the export tab visible. Refreshing resets the configuration.
+Drag to look around, scroll to zoom, use arrow keys for fine adjustments and Q/E for roll. Shift increases keyboard step size. Select a resolution, container and codec, choose a destination, then export. Embedded chat browsers may not support the save picker; use a standalone browser window. Keep the export tab visible. Valid settings are saved in this browser for the same local address and restored on reopening. Playback position and save-file permission are not retained; changing the browser or port, or clearing site data, resets preferences.
+
+In 3D mode, use W/S, A/D and R/F or the six on-screen movement buttons. Atmospheric scintillation is disabled in space. “沉浸取景” fills the screen with sky; moving the pointer to the bottom reveals playback controls, which hide about 1.4 seconds after leaving. Toggle the export frame to see the actual video crop. Esc returns to the editor and Tab reveals keyboard controls; fullscreen does not change export resolution or framing.
 
 The default clip is 60 seconds (5–120 seconds supported). At 1×, one video minute represents one simulated minute. The 120× star-trail preset represents two hours in one video minute. Enter the correct UTC offset manually, including daylight saving time. The Cougar preset uses approximate coordinates and is not a verified camera location.
 
