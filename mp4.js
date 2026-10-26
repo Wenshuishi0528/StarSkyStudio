@@ -1,4 +1,4 @@
-// Minimal video-only ISO BMFF muxer for timestamp-ordered AVC chunks.
+// Minimal video-only ISO BMFF muxer for timestamp-ordered AVC/HEVC chunks.
 // The encoder runs with latencyMode=realtime (no reordered B frames).
 (function(root){
  'use strict';
@@ -8,11 +8,40 @@
  const box=(type,...p)=>{const data=join(...p);return join(u32(data.length+8),str(type),data);};
  const full=(type,flags,...p)=>box(type,u32(flags),...p);
  const matrix=join(u32(65536),u32(0),u32(0),u32(0),u32(65536),u32(0),u32(0),u32(0),u32(0x40000000));
- function muxAVC(samples,description,width,height,fps=30){
-  if(!samples.length||!description?.byteLength)throw Error('编码器未返回有效AVC参数或画面');
-  const n=samples.length,ftyp=box('ftyp',str('isom'),u32(512),str('isomiso2avc1mp41'));
+ function muxVideo(samples,description,width,height,fps,hevc){
+  if(!samples.length||!description?.byteLength)throw Error('编码器未返回有效参数或画面');
+  if(!Number.isInteger(width)||!Number.isInteger(height)||width<1||height<1||width>65535||height>65535||!Number.isInteger(fps)||fps<1)throw Error('无效的视频尺寸或帧率');
+  const config=ArrayBuffer.isView(description)?new Uint8Array(description.buffer,description.byteOffset,description.byteLength):new Uint8Array(description);
+  if(config[0]!==1||config.length<(hevc?23:7))throw Error('编码器未返回有效参数或画面');
+  if(!samples[0].key||samples.some((s,i)=>!s.data?.byteLength||(i&&s.timestamp<=samples[i-1].timestamp)))throw Error('编码器返回了不支持的重排序帧');
+  if(hevc){
+   // hvc1 keeps all required parameter sets in hvcC, never in sample payloads.
+   let offset=23;const types=new Set();
+   for(let i=0;i<config[22];i++){
+    if(offset+3>config.length)throw Error('编码器未返回有效参数或画面');
+    const type=config[offset]&63,count=(config[offset+1]<<8)|config[offset+2];offset+=3;
+    for(let j=0;j<count;j++){
+     if(offset+2>config.length)throw Error('编码器未返回有效参数或画面');
+     const size=(config[offset]<<8)|config[offset+1];offset+=2;
+     if(size<2||offset+size>config.length)throw Error('编码器未返回有效参数或画面');
+     types.add(type);offset+=size;
+    }
+   }
+   if(offset!==config.length||![32,33,34].every(type=>types.has(type)))throw Error('编码器未返回有效参数或画面');
+   const lengthSize=(config[21]&3)+1;
+   for(const sample of samples){
+    const data=sample.data;let at=0;
+    while(at<data.length){let size=0;if(at+lengthSize>data.length)throw Error('编码器未返回有效参数或画面');
+     for(let i=0;i<lengthSize;i++)size=size*256+data[at++];
+     if(size<2||at+size>data.length||[32,33,34].includes((data[at]>>1)&63))throw Error('编码器未返回有效参数或画面');
+     at+=size;
+    }
+   }
+  }
+  const sampleType=hevc?'hvc1':'avc1',configType=hevc?'hvcC':'avcC';
+  const n=samples.length,ftyp=box('ftyp',str('isom'),u32(512),str('isomiso2'+sampleType+'mp41'));
   const total=samples.reduce((s,x)=>s+x.data.length,0);if(total+8>=2**32)throw Error('视频过大，请缩短片段');
-  const avc1=box('avc1',zero(6),u16(1),zero(16),u16(width),u16(height),u32(0x00480000),u32(0x00480000),u32(0),u16(1),zero(32),u16(24),u16(65535),box('avcC',new Uint8Array(description)));
+  const avc1=box(sampleType,zero(6),u16(1),zero(16),u16(width),u16(height),u32(0x00480000),u32(0x00480000),u32(0),u16(1),zero(32),u16(24),u16(65535),box(configType,config));
   const keys=samples.flatMap((s,i)=>s.key?[u32(i+1)]:[]);
   const stbl=box('stbl',full('stsd',0,u32(1),avc1),full('stts',0,u32(1),u32(n),u32(1)),full('stsc',0,u32(1),u32(1),u32(n),u32(1)),full('stsz',0,u32(0),u32(n),...samples.map(s=>u32(s.data.length))),full('stco',0,u32(1),u32(ftyp.length+8)),full('stss',0,u32(keys.length),...keys));
   const minf=box('minf',full('vmhd',1,zero(8)),box('dinf',full('dref',0,u32(1),full('url ',1))),stbl);
@@ -21,6 +50,8 @@
   const moov=box('moov',full('mvhd',0,u32(0),u32(0),u32(fps),u32(n),u32(65536),u16(256),zero(10),matrix,zero(24),u32(2)),trak);
   return new Blob([ftyp,u32(total+8),str('mdat'),...samples.map(s=>s.data),moov],{type:'video/mp4'});
  }
+ function muxAVC(samples,description,width,height,fps=30){return muxVideo(samples,description,width,height,fps,false);}
+ function muxHEVC(samples,description,width,height,fps=30){return muxVideo(samples,description,width,height,fps,true);}
  // WebM/VP9 fallback supports non-UHD aspect sizes outside platform AVC limits.
  function muxVP9(samples,width,height,fps=30){
   const num=n=>{let len=1;while(n>=2**(8*len))len++;const out=new Uint8Array(len);for(let i=len-1;i>=0;i--){out[i]=n%256;n=Math.floor(n/256);}return out;};
@@ -36,5 +67,5 @@
   const cueBlock=el(0x1c53bb6b,...cues),total=offset+cueBlock.length;
   return new Blob([header,num(0x18538067),size(total),info,tracks,...clusters,cueBlock],{type:'video/webm'});
  }
- if(typeof module!=='undefined'){module.exports=muxAVC;module.exports.muxVP9=muxVP9;}else {root.muxAVC=muxAVC;root.muxVP9=muxVP9;}
+ if(typeof module!=='undefined'){module.exports=muxAVC;module.exports.muxHEVC=muxHEVC;module.exports.muxVP9=muxVP9;}else {root.muxAVC=muxAVC;root.muxHEVC=muxHEVC;root.muxVP9=muxVP9;}
 })(globalThis);

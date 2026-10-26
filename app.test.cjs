@@ -6,7 +6,7 @@ function element(id,tag='',value=''){const el={id,tagName:tag.toUpperCase(),valu
 for(const m of html.matchAll(/<(\w+)\b([^>]*\bid="([^"]+)"[^>]*)>/g)){const [,tag,attrs,id]=m;elements[id]=element(id,tag,attrs.match(/\bvalue="([^"]*)"/)?.[1]||'');elements[id].type=attrs.match(/\btype="([^"]*)"/)?.[1];elements[id].checked=/\bchecked\b/.test(attrs);}
 for(const m of html.matchAll(/<select\b[^>]*id="([^"]+)"[^>]*>([\s\S]*?)<\/select>/g)){const opts=[...m[2].matchAll(/<option value="([^"]+)"([^>]*)>/g)];elements[m[1]].value=(opts.find(o=>o[2].includes('selected'))||opts[0])[1];}
 elements.controls.querySelectorAll=()=>Object.values(elements).filter(e=>['INPUT','SELECT'].includes(e.tagName));
-const sandbox={console,performance,Math,Date,DOMException,Uint8ClampedArray,setTimeout,clearTimeout,requestAnimationFrame(){},document:{getElementById:id=>elements[id],createElement:tag=>element('',tag),addEventListener(){}},window:{addEventListener(){}}};
+const sandbox={console,performance,Math,Date,DOMException,Uint8ClampedArray,setTimeout,clearTimeout,requestAnimationFrame(){},document:{getElementById:id=>elements[id],createElement:tag=>element('',tag),addEventListener(){}},window:{STARSKY_SERVICE:{available:true},addEventListener(){}}};
 const preferenceStore=new Map();sandbox.window.localStorage={getItem:k=>preferenceStore.get(k)||null,setItem:(k,v)=>preferenceStore.set(k,v)};
 sandbox.globalThis=sandbox;sandbox.window.STAR_CATALOG=[];
 vm.createContext(sandbox);vm.runInContext(fs.readFileSync(__dirname+'/data/stars.js','utf8'),sandbox);sandbox.STAR_CATALOG=sandbox.window.STAR_CATALOG;

@@ -20,5 +20,5 @@ foreground catalogue stars separately.
 
 Retain the above source credit and follow the NASA media usage guidelines:
 https://www.nasa.gov/nasa-brand-center/images-and-media/ . NASA does not endorse
-this application. The application's CC BY 4.0 statement does not replace the
+this application. The application's CC BY-NC 4.0 statement does not replace the
 source's attribution and usage terms.

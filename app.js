@@ -1,6 +1,8 @@
 'use strict';
 const $=id=>document.getElementById(id), A=Astro, D=A.D, I=StarSkyI18n, t=(key,params)=>I.t(key,params);
 const messages=new Map();
+const browserOnly=!window.STARSKY_SERVICE;
+let webCaps={key:'',pending:false,h264:null,hevc:null},webCapsTask=Promise.resolve();
 function write(id,value){if($(id).textContent!==value)$(id).textContent=value;}
 function messageParams(params){return typeof params==='function'?params():params;}
 function text(id,key,params={}){messages.set(id,{key,params});write(id,t(key,messageParams(params)));}
@@ -51,6 +53,7 @@ function restorePreferences(){
 
 function starColor(bv){bv=Number(bv);return bv>.9?'#ffce9e':bv>.4?'#fff0dc':bv<.1?'#c0d7ff':'#e5ecff';}
 function readSettings(){
+ if(browserOnly)$('container').value='mp4';
  const ids=['lat','lon','date','offset','az','alt','roll','seed','duration',...($('focalPreset').value==='custom'?['customFocal']:[])];
  for(const id of ids){if(!$ (id).value||!$(id).checkValidity()){ $(id).reportValidity();throw Error(t('请检查 {field}',{field:$(id).parentElement.textContent.trim()}));}}
  const s={}; for(const id of ['lat','lon','offset','az','alt','roll','fov','speed','magnitude','milky','meteors','seed','duration','twinkle','moveStep','chartDensity','customFocal'])s[id]=Number($(id).value);
@@ -71,6 +74,22 @@ function resize(){
  updateQualityInfo();
 }
 function updateQualityInfo(){text('qualityInfo','{width} × {height} · 30fps逐帧 · {quality}',{width:canvas.width,height:canvas.height,quality:t(settings.quality==='4k'?'可先用标准模式取景，再切4K导出':settings.quality==='1080p'?'全高清画质':'标准画质')});}
+function videoBitrate(){return settings.quality==='4k'?40000000:settings.quality==='1080p'?12000000:8000000;}
+function updateExportMode(){
+ if(!browserOnly){text('exportModeInfo','本机版 · 使用本地编码服务。');return;}
+ $('container').disabled=true;
+ for(const option of $('codec').options||[])if(option.value==='hevc')option.disabled=webCaps.pending||!webCaps.hevc;
+ text('exportModeInfo',webCaps.pending?'正在检查浏览器编码能力…':!webCaps[settings.codec]?'此设备不支持当前编码与分辨率，请改用 H.264、较低分辨率或本机版。':'网页版 · 视频在此设备生成，不上传云端。');
+}
+function refreshWebCapabilities(){
+ if(!browserOnly)return;
+ const key=[canvas.width,canvas.height,videoBitrate()].join(':');if(key===webCaps.key)return;
+ webCaps={key,pending:true,h264:null,hevc:null};updateExportMode();
+ const base={width:canvas.width,height:canvas.height,bitrate:videoBitrate()};
+ webCapsTask=Promise.all(['h264','hevc'].map(codec=>StarSkyWebExport.probe({...base,codec}))).then(([h264,hevc])=>{
+  if(webCaps.key!==key)return;webCaps={key,pending:false,h264,hevc};updateExportMode();
+ }).catch(()=>{if(webCaps.key===key){webCaps={key,pending:false,h264:null,hevc:null};updateExportMode();}});
+}
 function clearTrails(){tc.clearRect(0,0,W,H);trailTime=0;previous=[];}
 function changed({reset=true,view=false}={}){try{const next=readSettings(),old=settings;settings=next;updateFocalField();if(reset)elapsed=0;else elapsed=Math.min(elapsed,settings.duration);playing=false;
  if(old.spaceMode&&old.spaceMode!==settings.spaceMode){
@@ -192,7 +211,7 @@ function updateUI(){
  const ms=settings.start+elapsed*settings.speed*1000;$('skyTime').textContent=A.localISO(ms,settings.offset).replace('T',' ')+` UTC${settings.offset>=0?'+':''}${settings.offset}`;
  text('spanReadout','{duration}秒成片 · 天空经过 {minutes} 分钟',{duration:settings.duration,minutes:(settings.duration*settings.speed/60).toFixed(settings.speed===1?1:0)});
  text('spaceInfo',settings.spaceMode==='space'?'三维漫游 · 距太阳 {distance} · 大气闪烁 / 流星 / 地面星轨已停用{flight}':'地面全景 · 大气闪烁{twinkle} · 下半球为透视展示，不是地面实际可见区域',{distance:distanceText(U.norm(space.observer(ms,settings,elapsed,cam))),flight:settings.fly?t(' · 自动飞行'):'',twinkle:t(settings.twinkle?'开启':'关闭')});
- updateAssetStatus();
+ updateAssetStatus();refreshWebCapabilities();updateExportMode();
  $('twinkle').disabled=settings.spaceMode==='space';$('fly').disabled=settings.spaceMode!=='space';
  $('modeBadge').textContent=`● ${settings.spaceMode==='space'?t('三维漫游')+' · ':''}${t(settings.trail==='off'?'点状星空':'星轨')} · ${settings.speed}×`;
  text('viewReadout','{direction} {az}° · 仰角 {alt}° · 旋转 {roll}° · 视野 {fov}°',{direction:t(settings.spaceMode==='space'?'惯性朝向':'方位'),az:settings.az.toFixed(1),alt:settings.alt.toFixed(1),roll:settings.roll.toFixed(1),fov:Number(settings.fov.toFixed(2))});
@@ -285,15 +304,16 @@ for(const name of ['onpointerdown','onpointermove','onpointerup','onpointercance
 immersiveCanvas.addEventListener('wheel',zoomSky,{passive:false});
 $('resetPreset').onclick=()=>{const preset={spaceMode:'sky',fly:false,place:'Cougar 附近 · 华盛顿州',lat:46.05,lon:-122.30,date:'2026-07-18T22:54:00',offset:-7,speed:1,trail:'off',duration:60,aspect:'photo',magnitude:8.5,milky:1,meteors:5,seed:718};for(const [k,v]of Object.entries(preset)){if($(k).type==='checkbox')$(k).checked=v;else $(k).value=v;}changed();compose();};
 function lock(yes){$('controls').disabled=yes;for(const id of ['play','restart','timeline','snapshot','resetPreset','export','immersive','chooseSave','languageZh','languageEn','languageRu'])$(id).disabled=yes;$('cancel').hidden=!yes;text('cancel','取消导出');$('exportProgress').hidden=!yes;}
-function finishRecording(cancel){if(!recording)return;playing=false;recording.cancel=cancel;if(cancel&&recording.controller){recording.controller.abort();if(recording.jobId)fetch('/api/jobs/'+recording.jobId,{method:'DELETE',headers:{'X-StarSky-Token':window.STARSKY_SERVICE.token}}).catch(()=>{});}if(recording.offline)return;if(recording.rec.state!=='inactive')recording.rec.stop();}
+function finishRecording(cancel){if(!recording)return;playing=false;recording.cancel=cancel;if(cancel&&recording.controller){recording.controller.abort();if(recording.jobId)fetch('/api/jobs/'+recording.jobId,{method:'DELETE',headers:{'X-StarSky-Token':window.STARSKY_SERVICE.token}}).catch(()=>{});}if(recording.offline){if(cancel){recording.cancelResolve?.();recording.wake?.();if(recording.encoder&&recording.encoder.state!=='closed')recording.encoder.close();}return;}if(recording.rec.state!=='inactive')recording.rec.stop();}
 function exportTimestamp(now=new Date()){
  const pad=n=>String(n).padStart(2,'0');
  return String(now.getFullYear())+pad(now.getMonth()+1)+pad(now.getDate())+pad(now.getHours())+pad(now.getMinutes());
 }
 async function chooseOutput(){
- if(!window.showSaveFilePicker)throw Error('请选择桌面Chrome或Edge，以便指定保存文件夹');
- const ext=$('container').value,mime=ext==='mov'?'video/quicktime':'video/mp4';
- const handle=await window.showSaveFilePicker({id:'starsky-video',suggestedName:`星野-${exportTimestamp()}-${canvas.width}x${canvas.height}-${$('duration').value}秒-${$('codec').value==='hevc'?'H265':'H264'}.${ext}`,types:[{description:t('{format} 视频',{format:ext.toUpperCase()}),accept:{[mime]:['.'+ext]}}],excludeAcceptAllOption:true});
+ const ext=browserOnly?'mp4':$('container').value,mime=ext==='mov'?'video/quicktime':'video/mp4';
+ const suggestedName=`星野-${exportTimestamp()}-${canvas.width}x${canvas.height}-${$('duration').value}秒-${$('codec').value==='hevc'?'H265':'H264'}.${ext}`;
+ if(!window.showSaveFilePicker){if(!browserOnly)throw Error('请选择桌面Chrome或Edge，以便指定保存文件夹');saveHandle={name:suggestedName,downloadOnly:true};text('saveLocation','此浏览器由下载设置决定保存位置。');return;}
+ const handle=await window.showSaveFilePicker({id:'starsky-video',suggestedName,types:[{description:t('{format} 视频',{format:ext.toUpperCase()}),accept:{[mime]:['.'+ext]}}],excludeAcceptAllOption:true});
  if(!handle.name.toLowerCase().endsWith('.'+ext))throw Error(t('文件名需以 .{ext} 结尾',{ext}));
  saveHandle=handle;text('saveLocation','已选择：{name}（保存到所选文件夹）',{name:handle.name});
 }
@@ -303,6 +323,10 @@ $('chooseSave').onclick=async()=>{
   text('saveLocation',message);status(message);}
 };
 async function saveFinal(source,job){
+ if(browserOnly){
+  if(source.type!=='video/mp4')throw Error('此浏览器不支持直接导出 MP4，请使用新版 Chrome / Edge 或本机版。');
+  job.phase='save';status('正在浏览器中封装 MP4…');await saveVideoBlob(source,job);return;
+ }
  const service=window.STARSKY_SERVICE;if(!service?.available)throw Error('请通过“启动星野.command”打开本地导出服务');
  job.jobId=crypto.randomUUID();job.controller=new AbortController();job.phase='encode';
  status('正在本机编码 {codec} / {format}…',{codec:settings.codec==='hevc'?'H.265':'H.264',format:settings.container.toUpperCase()});
@@ -322,53 +346,67 @@ async function saveFinal(source,job){
   if(!response.ok){const err=await response.json();throw Error(err.error||'本地编码失败');}
   blob=await response.blob();
  }finally{monitoring=false;clearInterval(timer);}
+ await saveVideoBlob(blob,job);
+}
+async function saveVideoBlob(blob,job){
  if(job.cancel)throw new DOMException('导出已取消','AbortError');
  status('编码完成，正在写入所选文件…');$('exportProgress').value=1;
  if(videoURL)URL.revokeObjectURL(videoURL);videoURL=URL.createObjectURL(blob);
  const a=$('download');a.href=videoURL;a.download=saveHandle.name;text('download','下载已生成的 {format} 副本',{format:settings.container.toUpperCase()});a.hidden=false;
+ if(saveHandle.downloadOnly){text('download','下载 MP4 视频');status('视频已生成，请点击下载保存。');return;}
  const writer=await saveHandle.createWritable();try{await writer.write(blob);if(job.cancel){await writer.abort();throw new DOMException('导出已取消','AbortError');}await writer.close();}catch(e){try{await writer.abort();}catch(_){}throw e;}
  text('saveLocation','已保存：{name}',{name:saveHandle.name});status('已保存 {format} · {codec} · {width}×{height} · {duration}秒。',{format:settings.container.toUpperCase(),codec:settings.codec==='hevc'?'H.265':'H.264',width:canvas.width,height:canvas.height,duration:settings.duration});
 }
+async function flushEncoder(encoder,job){let timer;try{await Promise.race([encoder.flush(),job.cancelled.then(()=>{throw new DOMException('导出已取消','AbortError');}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('浏览器编码等待超时，请降低分辨率后重试。')),30000);})]);}finally{clearTimeout(timer);}}
 async function exportFrames(){
  let config;
  try{
+  if(browserOnly){config=webCaps[settings.codec];}
+  else {
   const base={width:canvas.width,height:canvas.height,bitrate:settings.quality==='4k'?40000000:settings.quality==='1080p'?12000000:8000000,framerate:30,latencyMode:'realtime',avc:{format:'avc'}};
   for(const codec of (canvas.width*canvas.height>3840*2160?['avc1.64003c','avc1.420034']:['avc1.420033','avc1.640033'])){
    const probe=await VideoEncoder.isConfigSupported({...base,codec});if(probe.supported){config=probe.config;break;}
   }
   if(!config){const vp={...base,codec:'vp09.00.60.08'};delete vp.avc;const probe=await VideoEncoder.isConfigSupported(vp);if(probe.supported)config=probe.config;}
+  }
  }catch(e){return false;}
  if(!config)return false;
- const job={offline:true,cancel:false,error:null},samples=[];let encoder,description;
+ const job={offline:true,cancel:false,error:null},samples=[];job.cancelled=new Promise(resolve=>{job.cancelResolve=resolve;});let encoder,description;
  try{
   settings=readSettings();playing=false;elapsed=0;clearTrails();buildMeteors();bgKey='';recording=job;lock(true);$('download').hidden=true;
-  encoder=new VideoEncoder({output(chunk,meta){const data=new Uint8Array(chunk.byteLength);chunk.copyTo(data);samples.push({data,key:chunk.type==='key',timestamp:chunk.timestamp});if(meta?.decoderConfig?.description)description=new Uint8Array(meta.decoderConfig.description).slice();},error(e){job.error=e;}});
-  encoder.configure(config);const count=Math.round(settings.duration*30);
+  encoder=new VideoEncoder({output(chunk,meta){const data=new Uint8Array(chunk.byteLength);chunk.copyTo(data);samples.push({data,key:chunk.type==='key',timestamp:chunk.timestamp});if(meta?.decoderConfig?.description){const next=new Uint8Array(meta.decoderConfig.description).slice();if(description&&(description.length!==next.length||description.some((v,i)=>v!==next[i])))job.error=Error('编码器在生成途中改变了视频配置，请降低分辨率后重试。');else description=next;}},error(e){job.error=e;}});
+  job.encoder=encoder;encoder.configure(config);const count=Math.round(settings.duration*30);
   for(let i=0;i<count;i++){
    if(job.cancel||job.error)break;
    elapsed=i/30;render();updateUI();const vf=new VideoFrame(canvas,{timestamp:Math.round(i*1000000/30),duration:Math.round(1000000/30)});
    try{encoder.encode(vf,{keyFrame:i%60===0});}finally{vf.close();}
-   if(encoder.encodeQueueSize>4)await encoder.flush();
-   await new Promise(requestAnimationFrame);
+   if(encoder.encodeQueueSize>4)await flushEncoder(encoder,job);
+   await new Promise(resolve=>{job.wake=resolve;requestAnimationFrame(()=>{job.wake=null;resolve();});});
   }
   if(job.error)throw job.error;
-  if(!job.cancel){await encoder.flush();if(job.error)throw job.error;if(samples.length!==count)throw Error('编码帧数不完整');
+  if(!job.cancel){await flushEncoder(encoder,job);if(job.error)throw job.error;if(samples.length!==count)throw Error('编码帧数不完整');
    for(let i=1;i<samples.length;i++)if(samples[i].timestamp<samples[i-1].timestamp)throw Error('编码器返回了不支持的重排序帧');
-   const isVP9=config.codec.startsWith('vp09');const blob=isVP9?muxVP9(samples,canvas.width,canvas.height,30):muxAVC(samples,description,canvas.width,canvas.height,30);
+   const isVP9=config.codec.startsWith('vp09'),isHEVC=/^(hvc1|hev1)/.test(config.codec);const blob=isVP9?muxVP9(samples,canvas.width,canvas.height,30):(isHEVC?muxHEVC:muxAVC)(samples,description,canvas.width,canvas.height,30);
+   samples.length=0;
    await saveFinal(blob,job);elapsed=settings.duration;
   }else status('生成已取消，未保存视频。');
- }catch(e){status(e.name==='AbortError'?'导出已取消，未写入目标文件。':'导出失败：{error}',()=>({error:t(e.message)}));}
+ }catch(e){status(job.cancel||e.name==='AbortError'?'导出已取消，未写入目标文件。':'导出失败：{error}',()=>({error:t(e.message)}));}
  finally{if(encoder&&encoder.state!=='closed')encoder.close();recording=null;lock(false);dirty=true;}
  return true;
 }
 $('export').onclick=async()=>{
  if(preparing||recording)return;
  try{settings=readSettings();}catch(e){status(e.message);return;}
- if(!window.STARSKY_SERVICE?.available){status('完整导出需要本地服务：请双击文件夹中的“启动星野.command”。');return;}
+ if(browserOnly){
+  refreshWebCapabilities();
+  if(webCaps.pending){status('正在检查浏览器编码能力…');return;}
+  if(!webCaps[settings.codec]){status('此设备不支持当前编码与分辨率，请改用 H.264、较低分辨率或本机版。');return;}
+ }else if(!window.STARSKY_SERVICE?.available){status('完整导出需要本地服务：请双击文件夹中的“启动星野.command”。');return;}
  preparing=true;preparingCancelled=false;lock(true);let offlineHandled=false;
- try{if(!saveHandle)await chooseOutput();}catch(e){preparing=false;lock(false);if(e.name!=='AbortError')status(e.message);return;}
+ try{if(!saveHandle||saveHandle.downloadOnly)await chooseOutput();}catch(e){preparing=false;lock(false);if(e.name!=='AbortError')status(e.message);return;}
  try{await waitForAssets();if(preparingCancelled)return;if(window.VideoEncoder&&window.VideoFrame)offlineHandled=await exportFrames();}catch(e){status(e.message);return;}finally{preparing=false;if(!recording)lock(false);}
  if(offlineHandled)return;
+ if(browserOnly){status('此浏览器不支持直接导出 MP4，请使用新版 Chrome / Edge 或本机版。');return;}
  if(!window.MediaRecorder||!canvas.captureStream){status('此浏览器不支持视频录制，请在桌面 Chrome 中打开。');return;}
  const mime=['video/mp4;codecs=avc1.640033','video/mp4','video/webm;codecs=vp8','video/webm;codecs=vp9'].find(t=>MediaRecorder.isTypeSupported(t));if(!mime){status('未找到浏览器支持的视频编码。');return;}
  try{settings=readSettings();elapsed=0;clearTrails();bgKey='';buildMeteors();const stream=canvas.captureStream(30),rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:settings.quality==='4k'?40000000:settings.quality==='1080p'?12000000:8000000}),job={rec,stream,chunks:[],cancel:false};recording=job;lock(true);$('download').hidden=true;render();if(job.cancel)throw Error('高清银河未就绪，请重试或选择原版背景后导出。');

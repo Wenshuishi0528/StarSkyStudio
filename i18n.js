@@ -1044,6 +1044,70 @@ Object.assign(messages,{
   "Горизонтальное поле зрения рассчитано по эквивалентному фокусному расстоянию полного кадра. Колесо мыши позволяет точную настройку."
  ]
 });
+Object.assign(messages,{
+ "网页版 · 视频在此设备生成，不上传云端。": [
+  "Web version · Video is generated on this device, without cloud upload.",
+  "Веб-версия · Видео создаётся на этом устройстве без загрузки в облако."
+ ],
+ "本机版 · 使用本地编码服务。": [
+  "Local version · Uses the local encoding service.",
+  "Локальная версия · Используется локальная служба кодирования."
+ ],
+ "正在检查浏览器编码能力…": [
+  "Checking browser encoding support…",
+  "Проверка возможностей кодирования браузера…"
+ ],
+ "此设备不支持当前编码与分辨率，请改用 H.264、较低分辨率或本机版。": [
+  "This device does not support the selected codec and resolution. Try H.264, a lower resolution or the local version.",
+  "Это устройство не поддерживает выбранные кодек и разрешение. Попробуйте H.264, меньшее разрешение или локальную версию."
+ ],
+ "网页版支持 MP4；MOV 请使用本机版。": [
+  "The web version exports MP4. Use the local version for MOV.",
+  "Веб-версия экспортирует MP4. Для MOV используйте локальную версию."
+ ],
+ "此浏览器由下载设置决定保存位置。": [
+  "This browser uses its download settings to choose the save location.",
+  "Место сохранения определяется настройками загрузок браузера."
+ ],
+ "视频已生成，请点击下载保存。": [
+  "Video is ready. Click Download to save it.",
+  "Видео готово. Нажмите «Скачать», чтобы сохранить его."
+ ],
+ "下载 MP4 视频": [
+  "Download MP4 video",
+  "Скачать видео MP4"
+ ],
+ "正在浏览器中封装 MP4…": [
+  "Packaging MP4 in the browser…",
+  "Сборка MP4 в браузере…"
+ ],
+ "此浏览器不支持直接导出 MP4，请使用新版 Chrome / Edge 或本机版。": [
+  "This browser cannot export MP4 directly. Use a recent Chrome / Edge or the local version.",
+  "Этот браузер не поддерживает прямой экспорт MP4. Используйте новую версию Chrome / Edge или локальную версию."
+ ],
+ "网页与本机版均在此设备生成视频，不上传云端。网页版输出 MP4，编码支持取决于浏览器与设备；本机版通过“启动星野.command”使用 FFmpeg。原照片未作为天空贴图。": [
+  "Both web and local versions generate video on this device without cloud upload. The web version exports MP4; codec support depends on the browser and device. The local version uses FFmpeg through the command launcher. Original photos are not used as sky textures.",
+  "Веб-версия и локальная версия создают видео на этом устройстве без загрузки в облако. Веб-версия экспортирует MP4; поддержка кодеков зависит от браузера и устройства. Локальная версия использует FFmpeg через файл запуска. Исходные фотографии не используются как текстуры неба."
+ ]
+});
+messages['编码器在生成途中改变了视频配置，请降低分辨率后重试。']=[
+ 'The encoder changed the video configuration during generation. Try a lower resolution.',
+ 'Кодировщик изменил параметры видео во время создания. Попробуйте меньшее разрешение.'
+];
+Object.assign(messages,{
+ '编码器未返回有效参数或画面':[
+  'The encoder did not return valid parameters or video frames.',
+  'Кодировщик не вернул допустимые параметры или видеокадры.'
+ ],
+ '无效的视频尺寸或帧率':[
+  'Invalid video dimensions or frame rate.',
+  'Недопустимые размеры видео или частота кадров.'
+ ],
+ '浏览器编码等待超时，请降低分辨率后重试。':[
+  'Browser encoding timed out. Try a lower resolution.',
+  'Время ожидания кодирования в браузере истекло. Попробуйте меньшее разрешение.'
+ ]
+});
 const languages=['zh','en','ru'],storageKey='starsky.language.v1';
 let language='zh',initialized=false;
 try{const saved=root.localStorage?.getItem(storageKey);if(languages.includes(saved))language=saved;}catch{}
@@ -1082,6 +1146,6 @@ function init(){
  }
  render();
 }
-const api={version:'0.3.0',get language(){return language;},t,setLanguage,init,onChange(fn){listeners.add(fn);return ()=>listeners.delete(fn);},messages};
+const api={version:'0.4.0',get language(){return language;},t,setLanguage,init,onChange(fn){listeners.add(fn);return ()=>listeners.delete(fn);},messages};
 root.StarSkyI18n=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

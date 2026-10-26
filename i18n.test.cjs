@@ -10,7 +10,7 @@ function makeEnvironment(){
  const sandbox={window};vm.runInNewContext(source,sandbox);return {I:window.StarSkyI18n,document,staticNode,nodes,attrs};
 }
 const {I,document,staticNode,nodes,attrs}=makeEnvironment();I.init();
-assert.equal(I.language,'ru');assert.equal(document.documentElement.lang,'ru');assert.equal(staticNode.nodeValue,' Наблюдение ');assert.equal(nodes.appVersion.textContent,'v0.3.0');assert.equal(attrs['aria-label'],'Язык интерфейса');
+assert.equal(I.language,'ru');assert.equal(document.documentElement.lang,'ru');assert.equal(staticNode.nodeValue,' Наблюдение ');assert.equal(nodes.appVersion.textContent,'v0.4.0');assert.equal(attrs['aria-label'],'Язык интерфейса');
 let changes=0;const off=I.onChange(()=>changes++);nodes.languageEn.onclick();assert.equal(changes,1);assert.equal(staticNode.nodeValue,' Observation ');assert.equal(nodes.languageEn['aria-pressed'],'true');assert.equal(storage.get('starsky.language.v1'),'en');
 assert.equal(I.t('已保存：{name}',{name:'test.mp4'}),'Saved: test.mp4');
 I.setLanguage('invalid');assert.equal(I.language,'en');I.setLanguage('en');assert.equal(changes,1);off();I.setLanguage('zh');assert.equal(changes,1);assert.equal(staticNode.nodeValue,' 观察方式 ');assert.equal(document.documentElement.lang,'zh-CN');
@@ -27,3 +27,7 @@ console.log('PASS: stored language, static text and attributes, language buttons
 I.setLanguage('en');assert.equal(I.t('镜头焦段'),'Lens focal length');
 I.setLanguage('ru');assert.equal(I.t('自定义焦距（mm）'),'Своё фокусное расстояние (мм)');
 console.log('PASS: focal-length control labels translate to English and Russian.');
+
+I.setLanguage("en");assert.equal(I.t("下载 MP4 视频"),"Download MP4 video");
+I.setLanguage("ru");assert.equal(I.t("本机版 · 使用本地编码服务。"),"Локальная версия · Используется локальная служба кодирования.");
+console.log("PASS: browser/local export messages translate to English and Russian.");

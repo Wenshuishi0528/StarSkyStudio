@@ -1,3 +1,27 @@
+# v0.4.0 · 星野 StarSky Studio — 网页版 / Web version
+
+## 中文
+
+- **授权更新**：v0.4.0 新提供的原创内容采用 CC BY-NC 4.0，商业用途需另行取得作者书面许可。此前 v0.1.0／v0.2.0／v0.3.0 的 CC BY 4.0 授权继续有效；第三方许可不变，详见 [授权说明](LICENSING.md)。
+
+- **网页运行**：增加静态网页构建与 GitHub Pages 自动部署，与本机版共用天空渲染和设置界面。
+- **浏览器导出**：直接生成 MP4，默认 H.264；按浏览器和设备能力检测 H.265 及目标分辨率。原生保存窗口不可用时，提供点击下载。
+- **保留本机导出**：Python／FFmpeg 路径继续支持 H.264、H.265、MP4 和 MOV。网页不提供 WebM 成片。
+- **资源与设置**：银河、星图保持按需加载；脚本与样式使用内容版本标记，静态站点仅发布运行所需资源和许可证。网页与本机地址分别保存偏好。
+- 导出页面需保持可见。编码支持、4K性能与保存窗口取决于浏览器和设备；不支持的组合会明确提示，不改用其他成片格式。
+
+## English
+
+- **Licensing:** newly provided original material in v0.4.0 uses CC BY-NC 4.0; commercial use requires separate written permission. Earlier CC BY 4.0 grants for v0.1.0/v0.2.0/v0.3.0 and third-party licenses remain valid. See [licensing scope](LICENSING.md).
+
+- **Web hosting:** static-site builds and GitHub Pages deployment share the existing sky renderer and settings interface with the local app.
+- **Browser export:** create MP4 directly, defaulting to H.264. H.265 and the requested resolution are checked against browser/device support. A download link is available when the native save picker is unavailable.
+- **Local export retained:** Python/FFmpeg continues to support H.264, H.265, MP4 and MOV. The web version does not produce WebM final output.
+- **Resources and settings:** optional galaxy/chart assets remain lazy-loaded; script/style content versions refresh changed code. The site includes runtime files and license notices, with preferences stored separately by origin.
+- Keep the export page visible. Codec support, 4K performance and native file pickers depend on the browser/device. Unsupported combinations report an error instead of changing the final format.
+
+---
+
 # v0.3.0 · 星野 StarSky Studio — 本地更新 / Local update
 
 本地版本说明；尚不代表已创建 v0.3.0 GitHub Release。 / Local version notes; a matching GitHub Release is not implied.
