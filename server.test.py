@@ -31,6 +31,27 @@ class ExportTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, '取消'):
             server.transcode('unused', 'unused.mp4', 'hevc', {'cancel':event})
 
+    def test_v03_assets_and_private_paths(self):
+        from http.client import HTTPConnection
+        http = server.ThreadingHTTPServer(('127.0.0.1', 0), server.Handler)
+        worker = threading.Thread(target=http.serve_forever, daemon=True)
+        worker.start()
+        try:
+            c = HTTPConnection('127.0.0.1', http.server_port)
+            c.request('GET', '/')
+            r = c.getresponse(); self.assertEqual(r.status, 200)
+            html = r.read().decode()
+            self.assertIn(f'app.js?v={(server.ROOT/"app.js").stat().st_mtime_ns}', html)
+            for path in ['/i18n.js', '/galaxy.js', '/star-chart.js', '/data/star-chart.json', '/data/sky/milkyway-4k-px.jpg']:
+                c.request('GET', path)
+                r = c.getresponse(); self.assertEqual(r.status, 200, path); self.assertGreater(len(r.read()), 100)
+            for path in ['/server.py', '/.git/config', '/data/sky/../stars.js', '/data/sky/missing.jpg']:
+                c.request('GET', path)
+                r = c.getresponse(); self.assertEqual(r.status, 404, path); r.read()
+            c.close()
+        finally:
+            http.shutdown(); http.server_close(); worker.join()
+
     def test_status_is_authenticated(self):
         from http.client import HTTPConnection
         http = server.ThreadingHTTPServer(('127.0.0.1', 0), server.Handler)

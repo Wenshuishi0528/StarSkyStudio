@@ -16,7 +16,7 @@
    for(const row of root.SPATIAL_STARS){const v=U.starView(row,ms,observer);if(v.mag>s.magnitude)continue;const z=dot(v.rel,cam.forward);if(z<=0)continue;const x=w/2+dot(v.rel,cam.right)*f/z,y=h/2-dot(v.rel,cam.up)*f/z;if(x<0||x>w||y<0||y>h)continue;
     const r=clamp(2.8-v.mag*.29,.35,5),alpha=clamp(1.3-v.mag*.12,.08,1),color=row[10]>.9?'#ffce9e':row[10]<.1?'#c0d7ff':'#fff0dc';ctx.globalAlpha=alpha;ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,2*Math.PI);ctx.fill();if(v.mag<1){const g=ctx.createRadialGradient(x,y,0,x,y,r*4);g.addColorStop(0,color+'66');g.addColorStop(1,color+'00');ctx.fillStyle=g;ctx.fillRect(x-r*4,y-r*4,r*8,r*8);}count++;
     const label={91262:'织女星',97649:'牛郎星',102098:'天津四',11767:'北极星',32349:'天狼星'}[row[1]]||(s.destination==='star:'+row[0]?row[2]:null);
-    if(labels&&label){ctx.globalAlpha=1;ctx.font='13px -apple-system,sans-serif';ctx.fillStyle='#d4e4c4';ctx.fillText(label,x+r+5,y-6);}
+    if(labels&&label){ctx.globalAlpha=1;ctx.font='13px -apple-system,sans-serif';ctx.fillStyle='#d4e4c4';ctx.fillText(root.StarSkyI18n?root.StarSkyI18n.t(label):label,x+r+5,y-6);}
    }ctx.globalAlpha=1;return count;
   }
   drawBodies(ctx,ms,s,observer,cam,w,h,basis,labels){
@@ -36,7 +36,7 @@
       ctx.drawImage(this.disk,x-r,y-r,2*r,2*r);
       if(b.id==='Saturn')this.rings(ctx,b,ms,observer,cam,local,f,w,h,true);
     }
-    if(labels){ctx.font='13px -apple-system,sans-serif';ctx.fillStyle='#d4e4c4';ctx.fillText(b.name,x+Math.max(r,4)+5,y-6);}
+    if(labels){ctx.font='13px -apple-system,sans-serif';ctx.fillStyle='#d4e4c4';ctx.fillText(root.StarSkyI18n?root.StarSkyI18n.t(b.name):b.name,x+Math.max(r,4)+5,y-6);}
    }
   }
   rings(ctx,b,ms,observer,cam,local,f,w,h,front){

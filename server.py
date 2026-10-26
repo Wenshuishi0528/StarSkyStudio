@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import re
 from pathlib import Path
 import secrets
 import shutil
@@ -129,14 +130,20 @@ class Handler(SimpleHTTPRequestHandler):
                     data['elapsed'] = round(time.monotonic()-job['started'])
             self.json_response(200 if data else 404, data or {'error': '任务尚未开始或已经完成'})
         elif path in ('/', '/index.html'):
-            body = (ROOT/'index.html').read_text().replace('</head>', '<script>window.STARSKY_SERVICE=' + json.dumps({'token': TOKEN, 'available': bool(FFMPEG)}) + ';</script></head>').encode()
+            html = (ROOT/'index.html').read_text()
+            # Refresh changed scripts without throwing away cached large sky textures.
+            html = re.sub(r'((?:src|href)=")([^"?]+\.(?:js|css))"',
+                          lambda m: f'{m[1]}{m[2]}?v={(ROOT/m[2]).stat().st_mtime_ns}"', html)
+            body = html.replace('</head>', '<script>window.STARSKY_SERVICE=' + json.dumps({'token': TOKEN, 'available': bool(FFMPEG)}) + ';</script></head>').encode()
             self.send_response(200)
             self.send_header('Content-Type', 'text/html; charset=utf-8')
             self.send_header('Content-Length', str(len(body)))
             self.send_header('Cache-Control', 'no-store')
             self.end_headers()
             self.wfile.write(body)
-        elif path in ('/immersive.js', '/vendor/astronomy.js', '/data/stars3d.js', '/universe.js', '/space-renderer.js', '/style.css', '/astro.js', '/app.js', '/mp4.js', '/data/stars.js', '/data/D3-CELESTIAL-LICENSE.txt'):
+        elif path in ('/i18n.js', '/galaxy.js', '/star-chart.js', '/data/star-chart.json', '/immersive.js', '/vendor/astronomy.js', '/data/stars3d.js', '/universe.js', '/space-renderer.js', '/style.css', '/astro.js', '/app.js', '/mp4.js', '/data/stars.js', '/data/D3-CELESTIAL-LICENSE.txt'):
+            super().do_GET()
+        elif path in {f'/data/sky/milkyway-{size}k-{face}.jpg' for size in (4, 8, 16) for face in ('px', 'nx', 'py', 'ny', 'pz', 'nz')}:
             super().do_GET()
         else:
             self.send_error(404)

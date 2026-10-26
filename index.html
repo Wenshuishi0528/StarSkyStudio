@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>星野 · StarSky Studio</title><link rel="stylesheet" href="style.css"></head>
 <body>
-<header><div class="brand"><span class="mark">✧</span><strong>星野</strong><span>STARSKY STUDIO</span><small>360° 全景星空</small></div><button id="resetPreset">↗ Cougar · 夏夜预设</button></header>
+<header><div class="brand"><span class="mark" aria-hidden="true">✧</span><div class="brand-copy"><div class="brand-title"><strong>星野</strong><span id="appVersion" class="version" aria-label="版本"></span><span class="brand-english">STARSKY STUDIO</span></div><a class="author" href="https://github.com/wenshuishi0528" target="_blank" rel="noreferrer" data-no-i18n>GitHub: wenshuishi0528</a></div></div><div class="header-actions"><div class="language-switch" role="group" aria-label="界面语言" data-no-i18n><button id="languageZh" type="button" lang="zh-CN" aria-pressed="true">中文</button><button id="languageEn" type="button" lang="en" aria-pressed="false">English</button><button id="languageRu" type="button" lang="ru" aria-pressed="false">Русский</button></div><button id="resetPreset">↗ Cougar · 夏夜预设</button></div></header>
 <main>
 <section class="workspace" id="workspace">
  <canvas id="immersiveSky" aria-label="全屏星空，拖动环顾，滚轮缩放" tabindex="0"></canvas><div id="exportFrame" aria-hidden="true"><span>视频取景范围</span></div>
@@ -11,12 +11,61 @@
  <div class="transport" id="transport" aria-label="播放与取景控制"><button id="play" class="primary">▶ 播放</button><button id="restart" title="回到片段开始">↺ 重播</button><span id="elapsed">00:00 / 01:00</span><input id="timeline" aria-label="片段进度" type="range" min="0" max="60" step="0.1" value="0"><button id="snapshot">保存图片</button><button id="frameToggle" aria-pressed="true" type="button">隐藏取景框</button><button id="immersive">沉浸取景</button></div>
  <div class="clock-row"><span>天空时间 <strong id="skyTime"></strong></span><span id="spanReadout"></span></div>
  <p id="status" role="status">正在准备星空…</p>
- <div class="notes"><span>✦ 完整球形星空 · 无地平线遮挡</span><span>银河艺术化显示 · 流星为模拟效果</span></div>
+ <div class="notes"><span>✦ 完整球形星空 · 无地平线遮挡</span><span>银河背景可选 · 流星为模拟效果</span></div>
 </section>
 <aside>
- <fieldset id="controls"><section class="panel"><h2><span>00</span> 观察方式与太阳系</h2>
+ <fieldset id="controls"><details class="panel" open><summary><span>00</span> 观察方式</summary>
 <label>观察模式<select id="spaceMode"><option value="sky">地面环顾 · 原版星空</option><option value="space">三维漫游 · 真实距离</option></select></label>
-<div class="pair"><label>大气闪烁<select id="twinkle"><option value="0">关闭</option><option value="1">轻微</option><option value="2">明显</option></select></label><label>太阳系大小<select id="bodyScale"><option value="physical">真实角尺寸</option><option value="markers">微小天体加可见标记</option></select></label></div>
+<label>大气闪烁<select id="twinkle"><option value="0">关闭</option><option value="1">轻微</option><option value="2">明显</option></select></label>
+<small id="spaceInfo" role="status">地面模式支持大气闪烁；太空中自动关闭。恒星距离与亮度按星表计算。</small>
+</details><details class="panel" open><summary><span>01</span> 时间与地点</summary>
+ <label>地点名称<input id="place" value="Cougar 附近 · 华盛顿州"></label>
+ <div class="pair"><label>纬度（北为正）<input id="lat" type="number" min="-90" max="90" step="0.0001" value="46.05"></label><label>经度（东为正）<input id="lon" type="number" min="-180" max="180" step="0.0001" value="-122.30"></label></div>
+ <label>当地起始日期与时间<input id="date" type="datetime-local" step="1" min="1900-01-01T00:00" max="2100-12-31T23:59" value="2026-07-18T22:54:00"></label>
+ <label>该时刻 UTC 偏移（手动，含夏令时）<input id="offset" type="number" min="-12" max="14" step="0.25" value="-7"></label><small>预设坐标是附近的近似值。更换地点、季节时，请同时核对 UTC 偏移。</small>
+ </details>
+ <details class="panel" open><summary><span>02</span> 时间如何流动</summary>
+ <div class="segmented"><button id="realtime" class="active" type="button">实时模式</button><button id="startrail" type="button">星轨模式</button></div>
+ <div class="pair"><label>时间流速<select id="speed"><option value="1">1× · 实时</option><option value="60">60× · 分钟变秒</option><option value="120">120× · 2小时 / 分钟</option><option value="240">240× · 4小时 / 分钟</option><option value="600">600× · 10小时 / 分钟</option></select></label><label>轨迹保留<select id="trail"><option value="off">关闭 · 点状星空</option><option value="all">持续累积</option><option value="fade">逐渐淡去</option></select></label></div>
+ <small>时间流速与星轨独立控制。实时模式下，一分钟内星点移动很小。</small>
+ </details>
+ <details class="panel" open><summary><span>03</span> 取景与画面</summary>
+ <div class="pair"><label>方位角<input id="az" type="number" min="0" max="360" step="0.1" value="100"></label><label>仰角<input id="alt" type="number" min="-90" max="90" step="0.1" value="60"></label></div>
+ <div class="pair"><label>画面旋转（°）<input id="roll" type="number" min="-180" max="180" step="0.1" value="0"></label><button id="upright" type="button" class="align-bottom">↶ 画面回正</button></div>
+ <small>视点位于星空球中心，上下左右均可连续转动。仰角是当前朝向读数，不是拖动限位。</small>
+ <label>镜头焦段<select id="focalPreset"><option value="free" selected>自由调整</option><option value="14">14 mm · 0.5×</option><option value="24">24 mm · 1×</option><option value="48">48 mm · 2×</option><option value="121">121 mm · 5×</option><option value="custom">自定义</option></select></label>
+ <label id="customFocalField" hidden>自定义焦距（mm）<input id="customFocal" type="number" min="5" max="2000" step="0.1" value="24"></label>
+ <label class="range-label">水平视野 <output id="fovValue">92°</output><input id="fov" aria-label="水平视野" type="range" min="1" max="150" step="any" value="92"></label>
+ <small>按全画幅等效焦距换算水平视角，滚轮仍可微调。</small>
+ <button id="compose" class="wide" type="button">⌖ 对准牛郎 · 织女 · 天津四</button>
+ <div class="pair"><label>取景比例<select id="aspect"><option value="wide">16:9 横屏</option><option value="portrait">9:16 竖屏</option><option value="photo" selected>4:3 照片</option></select></label><label>恒星显示深度<select id="magnitude"><option value="6">肉眼 · 6等</option><option value="7">丰富 · 7等</option><option value="8.5" selected>摄影 · 8.5等</option></select></label></div>
+ <label><input id="labels" type="checkbox" checked> 主星标记 · 原版</label>
+ <label>坐标网格<select id="grid"><option value="off">关闭</option><option value="horizontal">地平坐标 · 天顶与天底</option><option value="equatorial">赤道坐标 · 南北天极</option></select></label>
+ </details>
+ <details class="panel" open><summary><span>04</span> 画质与背景</summary>
+ <label>银河背景<select id="backgroundStyle"><option value="procedural">原版 · 程序化银河</option><option value="milky16k">观赏增强 · 16K 银河</option></select></label>
+ <small id="galaxyStatus" role="status"></small>
+ <label class="range-label">银河亮度 <input id="milky" type="range" min="0" max="2" step="0.05" value="1"></label>
+ <label>输出分辨率<select id="quality"><option value="standard">标准 · 流畅预览</option><option value="1080p">1080P · 全高清</option><option value="4k" selected>4K · 高画质输出</option></select></label><small id="settingsMemory" role="status">设置自动保存在此浏览器，下次打开恢复。</small><small id="qualityInfo">标准横屏1280×720 · 30fps目标帧率</small>
+ <small>16K 指全天空背景素材精度，视频分辨率由输出选项决定。</small>
+ </details>
+ <details class="panel"><summary><span>05</span> 星图标注</summary>
+ <label><input id="chartEnabled" type="checkbox"> 启用星图标注</label>
+ <div class="pair"><label><input id="chartStars" type="checkbox" checked> 恒星名称</label><label><input id="chartNames" type="checkbox" checked> 星座名称</label></div>
+ <label>标注范围<select id="chartScope"><option value="major">主要恒星</option><option value="all">全部已收录星名</option></select></label>
+ <div class="pair"><label><input id="chartLines" type="checkbox" checked> 星座连线</label><label><input id="chartBounds" type="checkbox"> 星座边界</label></div>
+ <label>标注密度<input id="chartDensity" type="range" min="0" max="1" step="0.05" value="0.55"></label>
+ <small id="chartStatus" role="status"></small>
+ <small>主星标记独立控制。三维漫游仅标注实际恒星，不显示地球视角的固定星座。</small>
+ </details>
+ <details class="panel" open><summary><span>06</span> 流星与成片</summary>
+ <div class="pair"><label>模拟流星<select id="meteors"><option value="0">关闭</option><option value="2">偶尔 · 2颗 / 分钟</option><option value="5" selected>丰富 · 5颗 / 分钟</option></select></label><label>随机种子<input id="seed" type="number" min="0" max="999999" step="1" value="718"></label></div>
+ <div class="pair"><label>视频格式<select id="container"><option value="mp4">MP4</option><option value="mov">MOV</option></select></label><label>视频编码<select id="codec"><option value="hevc">H.265</option><option value="h264" selected>H.264 · 默认</option></select></label></div>
+ <div class="pair"><label>成片时长（秒）<input id="duration" type="number" min="5" max="120" step="1" value="60"></label><label>导出辅助标记<select id="exportLabels"><option value="no">隐藏 · 干净画面</option><option value="yes">保留</option></select></label></div>
+ <small>同一种子可复现流星。优先逐帧导出30fps；生成耗时取决于画质与设备。请保持此页可见。分辨率见取景框。</small>
+ </details>
+ <details class="panel"><summary><span>07</span> 太阳系与空间移动</summary>
+<label>太阳系大小<select id="bodyScale"><option value="physical">真实角尺寸</option><option value="markers">微小天体加可见标记</option></select></label>
 <label><input id="solar" type="checkbox" checked> 显示太阳、行星与已收录卫星</label>
 <label>目的地<select id="destination"><option value="Sun">太阳</option><option value="Mercury">水星</option><option value="Venus">金星</option><option value="Earth">地球</option><option value="Moon">月球</option><option value="Mars">火星</option><option value="Jupiter">木星</option><option value="Io">木卫一 · Io</option><option value="Europa">木卫二 · Europa</option><option value="Ganymede">木卫三 · Ganymede</option><option value="Callisto">木卫四 · Callisto</option><option value="Saturn">土星</option><option value="Uranus">天王星</option><option value="Neptune">海王星</option><option value="Pluto">冥王星</option><option value="star:27919">参宿四 · Betelgeuse</option><option value="star:32263">天狼星 · Sirius</option><option value="star:70666">比邻星 · Proxima Centauri</option><option value="star:90979">织女星 · Vega</option><option value="star:97338">牛郎星 · Altair</option></select></label>
 <div class="pair"><button id="aimTarget" type="button">对准目的地</button><button id="visitTarget" type="button">前往附近 · 漫游</button></div>
@@ -24,36 +73,9 @@
 <div class="pair"><button id="moveForward" type="button">向前 W</button><button id="moveBack" type="button">向后 S</button><button id="moveLeft" type="button">向左 A</button><button id="moveRight" type="button">向右 D</button><button id="moveUp" type="button">上移 R</button><button id="moveDown" type="button">下移 F</button></div>
 <label><input id="fly" type="checkbox"> 播放 / 导出时沿当前视线自动飞行</label>
 <button id="returnEarth" type="button" class="wide">返回地面观察点</button>
-<small id="spaceInfo" role="status">地面模式支持大气闪烁；太空中自动关闭。恒星距离与亮度按星表计算。</small>
 <small>漫游相机可加速移动，不代表飞船真实运动。位置为几何位置，未校正光行时。球面着色为简化反照模型；不是观测级照片。</small>
-</section><section class="panel"><h2><span>01</span> 时间与地点</h2>
- <label>地点名称<input id="place" value="Cougar 附近 · 华盛顿州"></label>
- <div class="pair"><label>纬度（北为正）<input id="lat" type="number" min="-90" max="90" step="0.0001" value="46.05"></label><label>经度（东为正）<input id="lon" type="number" min="-180" max="180" step="0.0001" value="-122.30"></label></div>
- <label>当地起始日期与时间<input id="date" type="datetime-local" step="1" min="1900-01-01T00:00" max="2100-12-31T23:59" value="2026-07-18T22:54:00"></label>
- <label>该时刻 UTC 偏移（手动，含夏令时）<input id="offset" type="number" min="-12" max="14" step="0.25" value="-7"></label><small>预设坐标是附近的近似值。更换地点、季节时，请同时核对 UTC 偏移。</small>
- </section>
- <section class="panel"><h2><span>02</span> 时间如何流动</h2>
- <div class="segmented"><button id="realtime" class="active" type="button">实时模式</button><button id="startrail" type="button">星轨模式</button></div>
- <div class="pair"><label>时间流速<select id="speed"><option value="1">1× · 实时</option><option value="60">60× · 分钟变秒</option><option value="120">120× · 2小时 / 分钟</option><option value="240">240× · 4小时 / 分钟</option><option value="600">600× · 10小时 / 分钟</option></select></label><label>轨迹保留<select id="trail"><option value="off">关闭 · 点状星空</option><option value="all">持续累积</option><option value="fade">逐渐淡去</option></select></label></div>
- <small>时间流速与星轨独立控制。实时模式下，一分钟内星点移动很小。</small>
- </section>
- <section class="panel"><h2><span>03</span> 取景与画面</h2>
- <div class="pair"><label>方位角<input id="az" type="number" min="0" max="360" step="0.1" value="100"></label><label>仰角<input id="alt" type="number" min="-90" max="90" step="0.1" value="60"></label></div>
- <div class="pair"><label>画面旋转（°）<input id="roll" type="number" min="-180" max="180" step="0.1" value="0"></label><button id="upright" type="button" class="align-bottom">↶ 画面回正</button></div>
- <small>视点位于星空球中心，上下左右均可连续转动。仰角是当前朝向读数，不是拖动限位。</small>
- <label class="range-label">水平视野 <output id="fovValue">90°</output><input id="fov" aria-label="水平视野" type="range" min="30" max="120" value="90"></label>
- <button id="compose" class="wide" type="button">⌖ 对准牛郎 · 织女 · 天津四</button>
- <div class="pair"><label>取景比例<select id="aspect"><option value="wide">16:9 横屏</option><option value="portrait">9:16 竖屏</option><option value="photo" selected>4:3 照片</option></select></label><label>恒星显示深度<select id="magnitude"><option value="6">肉眼 · 6等</option><option value="7">丰富 · 7等</option><option value="8.5" selected>摄影 · 8.5等</option></select></label></div>
- <label class="range-label">银河亮度 <input id="milky" type="range" min="0" max="2" step="0.05" value="1"></label>
- <div class="checks"><label><input id="labels" type="checkbox" checked> 主星标记</label><label><input id="grid" type="checkbox"> 球面方向网格</label></div>
- </section>
- <section class="panel"><h2><span>04</span> 流星与成片</h2>
- <div class="pair"><label>模拟流星<select id="meteors"><option value="0">关闭</option><option value="2">偶尔 · 2颗 / 分钟</option><option value="5" selected>丰富 · 5颗 / 分钟</option></select></label><label>随机种子<input id="seed" type="number" min="0" max="999999" step="1" value="718"></label></div>
- <div class="pair"><label>视频格式<select id="container"><option value="mp4">MP4</option><option value="mov">MOV</option></select></label><label>视频编码<select id="codec"><option value="hevc">H.265</option><option value="h264" selected>H.264 · 默认</option></select></label></div>
- <label>输出分辨率<select id="quality"><option value="standard">标准 · 流畅预览</option><option value="1080p">1080P · 全高清</option><option value="4k" selected>4K · 高画质输出</option></select></label><small id="settingsMemory" role="status">设置自动保存在此浏览器，下次打开恢复。</small><small id="qualityInfo">标准横屏1280×720 · 30fps目标帧率</small>
- <div class="pair"><label>成片时长（秒）<input id="duration" type="number" min="5" max="120" step="1" value="60"></label><label>导出辅助标记<select id="exportLabels"><option value="no">隐藏 · 干净画面</option><option value="yes">保留</option></select></label></div>
- <small>同一种子可复现流星。优先逐帧导出30fps；生成耗时取决于画质与设备。请保持此页可见。分辨率见取景框。</small>
- </section></fieldset>
+
+</details></fieldset>
  <div class="export-panel"><button id="chooseSave" class="wide">选择保存位置…</button><small id="saveLocation" role="status" aria-live="polite">未选择；导出时选择文件名和文件夹</small><button id="export" class="primary wide">↓ 导出视频</button><button id="cancel" class="wide" hidden>取消录制</button><a id="download" hidden>下载视频</a><progress id="exportProgress" value="0" max="1" hidden></progress></div>
- <details><summary>精度与数据来源</summary><p>恒星采用 XHIP 星表的 d3-celestial GeoJSON 数据（J2000），含近似岁差修正。三维漫游采用HYG距离与空间速度；太阳系采用Astronomy Engine。收录太阳、八大行星、冥王星、月球与木星四大卫星，不包含完整卫星目录。未校正大气折射、光行时与相对论效应。银河纹理为程序化示意。全景模式不遮挡下半球，也不模拟白昼亮度；时间和地点决定星空朝向，不代表地面实拍可见性。</p><a href="https://github.com/ofrohn/d3-celestial" target="_blank" rel="noreferrer">d3-celestial / XHIP 数据来源 ↗</a><p>本地运行，H.265/H.264在本机编码，文件不上传云端。请用“启动星野.command”启用完整导出。当前版本没有把原照片作为天空贴图。</p></details>
-</aside></main><script src="data/stars.js"></script><script src="astro.js"></script><script src="vendor/astronomy.js"></script><script src="data/stars3d.js"></script><script src="universe.js"></script><script src="space-renderer.js"></script><script src="mp4.js"></script><script src="immersive.js"></script><script src="app.js"></script></body></html>
+ <details><summary>精度与数据来源</summary><p>恒星采用 XHIP 星表的 d3-celestial GeoJSON 数据（J2000），含近似岁差修正。三维漫游采用HYG距离与空间速度；太阳系采用Astronomy Engine。收录太阳、八大行星、冥王星、月球与木星四大卫星，不包含完整卫星目录。未校正大气折射、光行时与相对论效应。原版银河为程序化示意，增强银河采用 NASA 星表可视化背景。全景模式不遮挡下半球，也不模拟白昼亮度；时间和地点决定星空朝向，不代表地面实拍可见性。</p><a href="https://github.com/ofrohn/d3-celestial" target="_blank" rel="noreferrer">d3-celestial / XHIP 数据来源 ↗</a><p>本地运行，H.265/H.264在本机编码，文件不上传云端。请用“启动星野.command”启用完整导出。当前版本没有把原照片作为天空贴图。</p></details>
+</aside></main><script src="data/stars.js"></script><script src="astro.js"></script><script src="vendor/astronomy.js"></script><script src="data/stars3d.js"></script><script src="universe.js"></script><script src="space-renderer.js"></script><script src="mp4.js"></script><script src="immersive.js"></script><script src="i18n.js"></script><script src="galaxy.js"></script><script src="star-chart.js"></script><script src="app.js"></script></body></html>

@@ -10,6 +10,13 @@
     return equatorial((Math.atan2(A,B)+z)/D,Math.asin(Math.max(-1,Math.min(1,C)))/D);
   }
   function basis(ms,lat,lon){const s=sidereal(ms,lon),p=lat*D;return [[-Math.sin(s),Math.cos(s),0],[-Math.sin(p)*Math.cos(s),-Math.sin(p)*Math.sin(s),Math.cos(p)],[Math.cos(p)*Math.cos(s),Math.cos(p)*Math.sin(s),Math.sin(p)]];}
+  // Columns of the J2000 -> mean-of-date rotation. Its transpose is the inverse.
+  function precessionAxes(ms){return [precess(0,0,ms),precess(90,0,ms),precess(0,90,ms)];}
+  function j2000Basis(ms,lat,lon,epoch=ms){const axes=precessionAxes(epoch);return basis(ms,lat,lon).map(row=>axes.map(axis=>dot(row,axis)));}
+  function gridDirection(longitude,latitude,kind,groundBasis){
+    const a=longitude*D,h=latitude*D;
+    return kind==='equatorial'?horizontal(equatorial(longitude,latitude),groundBasis):[Math.cos(h)*Math.sin(a),Math.cos(h)*Math.cos(a),Math.sin(h)];
+  }
   const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
   function horizontal(v,b){return b.map(x=>dot(v,x));}
   const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
@@ -24,6 +31,6 @@
   function parseLocal(value,offset){const t=Date.parse(value+'Z')-offset*3600000;if(!Number.isFinite(t))throw Error('请输入有效日期与时间');return t;}
   function localISO(ms,offset){return new Date(ms+offset*3600000).toISOString().slice(0,19);}
   function random(seed){return ()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
-  const api={D,wrap,sidereal,equatorial,precess,basis,dot,horizontal,camera,turnCamera,cameraAngles,project,solarAltitude,parseLocal,localISO,random};
+  const api={D,wrap,sidereal,equatorial,precess,precessionAxes,j2000Basis,gridDirection,basis,dot,horizontal,camera,turnCamera,cameraAngles,project,solarAltitude,parseLocal,localISO,random};
   if(typeof module!=='undefined')module.exports=api;else root.Astro=api;
 })(globalThis);

@@ -6,12 +6,16 @@ function element(id,tag='',value=''){const el={id,tagName:tag.toUpperCase(),valu
 for(const m of html.matchAll(/<(\w+)\b([^>]*\bid="([^"]+)"[^>]*)>/g)){const [,tag,attrs,id]=m;elements[id]=element(id,tag,attrs.match(/\bvalue="([^"]*)"/)?.[1]||'');elements[id].type=attrs.match(/\btype="([^"]*)"/)?.[1];elements[id].checked=/\bchecked\b/.test(attrs);}
 for(const m of html.matchAll(/<select\b[^>]*id="([^"]+)"[^>]*>([\s\S]*?)<\/select>/g)){const opts=[...m[2].matchAll(/<option value="([^"]+)"([^>]*)>/g)];elements[m[1]].value=(opts.find(o=>o[2].includes('selected'))||opts[0])[1];}
 elements.controls.querySelectorAll=()=>Object.values(elements).filter(e=>['INPUT','SELECT'].includes(e.tagName));
-const sandbox={console,performance,Math,Date,Uint8ClampedArray,setTimeout,clearTimeout,requestAnimationFrame(){},document:{getElementById:id=>elements[id],createElement:tag=>element('',tag),addEventListener(){}},window:{addEventListener(){}}};
+const sandbox={console,performance,Math,Date,DOMException,Uint8ClampedArray,setTimeout,clearTimeout,requestAnimationFrame(){},document:{getElementById:id=>elements[id],createElement:tag=>element('',tag),addEventListener(){}},window:{addEventListener(){}}};
 const preferenceStore=new Map();sandbox.window.localStorage={getItem:k=>preferenceStore.get(k)||null,setItem:(k,v)=>preferenceStore.set(k,v)};
 sandbox.globalThis=sandbox;sandbox.window.STAR_CATALOG=[];
 vm.createContext(sandbox);vm.runInContext(fs.readFileSync(__dirname+'/data/stars.js','utf8'),sandbox);sandbox.STAR_CATALOG=sandbox.window.STAR_CATALOG;
 vm.runInContext(fs.readFileSync(__dirname+'/astro.js','utf8'),sandbox);
 for(const file of ['vendor/astronomy.js','data/stars3d.js','universe.js','space-renderer.js','immersive.js']){vm.runInContext(fs.readFileSync(__dirname+'/'+file,'utf8'),sandbox);if(file==='vendor/astronomy.js')sandbox.Astronomy=sandbox.window.Astronomy;}
+let languageChanged;
+sandbox.StarSkyI18n={language:'zh',init(){},onChange(fn){languageChanged=fn;},t(key,params={}){const en={'太阳':'Sun','光年':'ly','已对准 {name} · 距离 {distance}':'Aimed at {name} · Distance {distance}'};return (this.language==='en'?(en[key]??key):key).replace(/\{(\w+)\}/g,(_,k)=>params[k]??'');}};
+for(const file of ['galaxy.js','star-chart.js'])vm.runInContext(fs.readFileSync(__dirname+'/'+file,'utf8'),sandbox);
+sandbox.GalaxyBackground=sandbox.window.GalaxyBackground;
 vm.runInContext(fs.readFileSync(__dirname+'/app.js','utf8'),sandbox);
 const run=code=>vm.runInContext(code,sandbox);
 assert.equal(run('stars.length>0'),true);
@@ -79,14 +83,7 @@ elements.returnEarth.onclick();assert.equal(run('settings.spaceMode'),'sky');ass
 elements.twinkle.value='1';elements.twinkle.listeners.change();run('render()');
 assert.equal(run('settings.twinkle'),1);
 console.log('PASS: UI mode switch, spatial translation, sunlit Saturn visit, deterministic fly-through, return to ground, and atmospheric toggle.');
-(async()=>{
- elements.lat.value='';let picked=false;
- sandbox.window.showSaveFilePicker=async options=>{picked=true;assert.match(options.suggestedName,/^星野-\d{12}-1080x1920-/);return {name:options.suggestedName};};
- await elements.chooseSave.onclick();assert.ok(picked,'location selection is independent of sky validation');
- sandbox.window.showSaveFilePicker=undefined;
- await elements.chooseSave.onclick();assert.match(elements.saveLocation.textContent,/Chrome/);
- console.log('PASS: 1080P dimensions, timestamped picker, independent location selection, visible unsupported-browser error.');
-})().catch(e=>{console.error(e);process.exitCode=1;});
+
 
 // Fullscreen projection must preserve the export frustum for every aspect.
 const {geometry}=require('./immersive.js'),A=require('./astro.js');
@@ -120,3 +117,94 @@ elements.frameToggle.onclick();assert.equal(elements.exportFrame.hidden,true);el
 sandbox.document.fullscreenElement=null;run('onImmersiveChange();render()');assert.equal(run('JSON.stringify([W,H,settings.fov,canvas.width,canvas.height,elapsed,cam])'),outputBefore);
 sandbox.setTimeout=realTimer;sandbox.clearTimeout=clearTimeout;
 console.log('PASS: fullscreen fills viewport, projection matches export, output state restored, overlay auto-hides and respects drag/hover/keyboard, frame toggles, exit restores editor.');
+
+// Old checkbox preferences migrate; new chart/grid controls round trip unchanged.
+const oldPreferences=JSON.parse(savedDefault);oldPreferences.fields.grid=true;
+preferenceStore.set('starsky.preferences.v1',JSON.stringify(oldPreferences));run('restorePreferences()');assert.equal(elements.grid.value,'horizontal');
+elements.grid.value='equatorial';elements.chartScope.value='all';elements.chartBounds.checked=true;run('savePreferences()');
+elements.grid.value='off';elements.chartScope.value='major';elements.chartBounds.checked=false;run('restorePreferences()');
+assert.equal(elements.grid.value,'equatorial');assert.equal(elements.chartScope.value,'all');assert.equal(elements.chartBounds.checked,true);
+// A native 4K export requests the output dimensions, while preview uses display pixels.
+elements.lat.value='46.05';elements.aspect.value='photo';elements.quality.value='4k';elements.spaceMode.value='sky';run('changed({reset:false})');
+run('galaxy.draw=(ctx,options)=>{globalThis.lastGalaxyOptions=options;return true;};settings.backgroundStyle="milky16k";renderScene()');
+assert.equal(sandbox.lastGalaxyOptions.width,1000);assert.equal(sandbox.lastGalaxyOptions.height,750);
+run('fullResolution=true;renderScene();fullResolution=false');assert.equal(sandbox.lastGalaxyOptions.width,3840);assert.equal(sandbox.lastGalaxyOptions.height,2880);
+const plainCount=run('stars.length');run('settings.backgroundStyle="procedural";renderScene()');assert.equal(run('stars.length'),plainCount);
+// A GPU failure may fall back in preview, but must stop a full-resolution output.
+run('settings.backgroundStyle="milky16k";galaxy.draw=()=>false;fullResolution=true');assert.throws(()=>run('renderScene()'),/高清银河未就绪/);run('fullResolution=false;settings.backgroundStyle="procedural"');
+// Chart labels use live HYG positions in space and are hidden by clean-export selection.
+sandbox.chartData=JSON.parse(fs.readFileSync(__dirname+'/data/star-chart.json','utf8'));run('chart.setData(chartData);settings.chartEnabled=true;settings.chartStars=true;settings.chartNames=true;settings.chartLines=true;settings.chartBounds=true;renderScene()');
+assert.ok(run('chart.stats.labels')>0);assert.ok(run('chart.stats.segments')>0);
+run('settings.spaceMode="space";renderScene()');assert.equal(run('chart.stats.segments'),0);
+run('settings.spaceMode="sky";settings.chartEnabled=false;renderScene()');
+console.log('PASS: legacy grid migration, chart preference round trip, native 4K background dimensions, preview sizing, GPU export failure and chart mode restrictions.');
+
+// Focal-length controls use the existing framing handlers and preserve the playhead.
+elements.lat.value='46.05';elements.quality.value='standard';elements.aspect.value='photo';elements.backgroundStyle.value='procedural';elements.chartEnabled.checked=false;run('changed({reset:false});elapsed=17.25');
+for(const [mm,horizontalDegrees] of [['14',104.25003269780359],['24',73.73979529168804],['48',41.11209043916693],['121',16.92257628514273]]){
+ elements.focalPreset.value=mm;elements.focalPreset.listeners.change();
+ assert.ok(Math.abs(run('settings.fov')-horizontalDegrees)<1e-10,`full-frame horizontal angle for ${mm} mm`);
+ assert.equal(run('settings.focalPreset'),mm);assert.equal(elements.customFocalField.hidden,true);assert.equal(elements.customFocal.disabled,true);
+ assert.equal(run('elapsed'),17.25,'changing lenses preserves the playhead');
+}
+elements.focalPreset.value='custom';elements.customFocal.value='85';elements.focalPreset.listeners.change();
+assert.equal(elements.customFocalField.hidden,false);assert.equal(elements.customFocal.disabled,false);assert.ok(Math.abs(run('settings.fov')-23.913168486298265)<1e-10);
+const savedLens=preferenceStore.get('starsky.preferences.v1');
+let prevented=0;elements.sky.listeners.wheel({deltaY:100,preventDefault(){prevented++;}});
+const firstZoom=run('settings.fov');assert.ok(firstZoom>23.9);assert.equal(elements.focalPreset.value,'free');assert.equal(run('settings.focalPreset'),'free');assert.equal(elements.customFocalField.hidden,true);
+elements.sky.listeners.wheel({deltaY:100,preventDefault(){prevented++;}});assert.ok(run('settings.fov')>firstZoom,'scroll continues after leaving the lens preset');assert.equal(prevented,2);
+// Small wheel deltas must survive at telephoto angles rather than rounding to 0.1°.
+for(const narrowFov of [16.9,1.0312961868398636]){
+ sandbox.narrowFov=narrowFov;run('settings.fov=narrowFov;syncView()');
+ elements.sky.listeners.wheel({deltaY:1,preventDefault(){}});
+ const zoomed=run('settings.fov');assert.ok(zoomed>narrowFov,`fine scrolling changes ${narrowFov}°`);assert.ok(zoomed-narrowFov<0.1,'fine adjustment retains sub-tenth-degree precision');
+ elements.sky.listeners.wheel({deltaY:1,preventDefault(){}});assert.ok(run('settings.fov')>zoomed,'successive fine scrolling keeps changing the view');
+}
+elements.customFocal.value='24';preferenceStore.set('starsky.preferences.v1',savedLens);run('restorePreferences();changed({reset:false,view:true})');
+assert.equal(elements.focalPreset.value,'custom');assert.equal(Number(elements.customFocal.value),85);assert.equal(elements.customFocalField.hidden,false);assert.ok(Math.abs(run('settings.fov')-23.913168486298265)<1e-10);
+console.log('PASS: four lens angles, custom 85 mm, continuous wheel adjustment, preserved playhead and restored lens settings.');
+
+// Language buttons are outside the fieldset, so they need explicit export locking.
+run('lock(true)');for(const id of ['languageZh','languageEn','languageRu'])assert.equal(elements[id].disabled,true,id);
+run('lock(false)');for(const id of ['languageZh','languageEn','languageRu'])assert.equal(elements[id].disabled,false,id);
+
+// Cached messages must recompute translated parameters without mutating sky state.
+elements.destination.value='Sun';elements.aimTarget.onclick();
+assert.match(elements.status.textContent,/太阳/);
+const beforeLanguage=run('JSON.stringify([settings,elapsed,cam,space.position,playing])');
+sandbox.StarSkyI18n.language='en';languageChanged();assert.match(elements.status.textContent,/^Aimed at Sun · Distance /);assert.doesNotMatch(elements.status.textContent,/太阳/);
+assert.equal(run('JSON.stringify([settings,elapsed,cam,space.position,playing])'),beforeLanguage);
+sandbox.StarSkyI18n.language='zh';languageChanged();assert.match(elements.status.textContent,/太阳/);
+console.log('PASS: export locks all language buttons; cached dynamic parameters retranslate without resetting sky state.');
+
+// A background animation tick must not race the offline export render loop.
+let gpuCalls=0,scheduledFrames=0;
+const originalRAF=sandbox.requestAnimationFrame,originalGalaxyDraw=run('galaxy.draw');
+sandbox.requestAnimationFrame=()=>{scheduledFrames++;};sandbox.failGpu=()=>{gpuCalls++;throw Error('GPU unavailable');};
+run('galaxy.draw=failGpu;settings.backgroundStyle="milky16k";recording={offline:true};dirty=true;playing=true');
+const offlineElapsed=run('elapsed');assert.doesNotThrow(()=>run('frame(performance.now()+1000)'));
+assert.equal(gpuCalls,0);assert.equal(scheduledFrames,1);assert.equal(run('elapsed'),offlineElapsed);assert.equal(run('dirty'),true);
+sandbox.originalGalaxyDraw=originalGalaxyDraw;run('galaxy.draw=originalGalaxyDraw;settings.backgroundStyle="procedural";recording=null;playing=false');sandbox.requestAnimationFrame=originalRAF;
+console.log('PASS: offline export owns rendering; animation ticks neither consume dirty state nor invoke a failed GPU background.');
+
+// Run asynchronous UI cases sequentially: no picker continuation may overlap cancellation.
+(async()=>{
+ elements.quality.value='1080p';elements.aspect.value='portrait';run('changed({reset:false})');
+ elements.lat.value='';let picked=false;
+ sandbox.window.showSaveFilePicker=async options=>{picked=true;assert.match(options.suggestedName,/^星野-\d{12}-1080x1920-/);return {name:options.suggestedName};};
+ await elements.chooseSave.onclick();assert.ok(picked,'location selection is independent of sky validation');
+ sandbox.window.showSaveFilePicker=undefined;
+ await elements.chooseSave.onclick();assert.match(elements.saveLocation.textContent,/Chrome/);elements.lat.value='46.05';
+ console.log('PASS: 1080P dimensions, timestamped picker, independent location selection, visible unsupported-browser error.');
+
+ let blobs=0;elements.sky.toBlob=()=>{blobs++;};
+ run('settings.backgroundStyle="milky16k";settings.chartEnabled=false;galaxy.ready=new Promise(()=>{});recording=null;preparing=false');
+ const pending=elements.snapshot.onclick();assert.equal(run('preparing'),true);assert.equal(elements.snapshot.disabled,true);assert.equal(typeof run('cancelPreparation'),'function');
+ elements.cancel.onclick();
+ let deadline;
+ try{await Promise.race([pending,new Promise((_,reject)=>{deadline=setTimeout(()=>reject(Error('Screenshot cancel waited for an unresolved asset')),500);})]);}
+ finally{clearTimeout(deadline);}
+ assert.equal(blobs,0,'cancelled screenshot must not call toBlob');assert.equal(run('preparing'),false);assert.equal(run('fullResolution'),false);assert.equal(run('cancelPreparation'),null);assert.equal(elements.snapshot.disabled,false);assert.equal(elements.controls.disabled,false);assert.match(elements.status.textContent,/取消/);
+ run('settings.backgroundStyle="procedural";galaxy.ready=Promise.resolve(false);preparingCancelled=false');
+ console.log('PASS: cancelling a screenshot immediately interrupts pending assets, unlocks controls and never creates an image.');
+})().catch(e=>{console.error(e);process.exitCode=1;});

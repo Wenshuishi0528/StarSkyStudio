@@ -15,3 +15,29 @@
 .workspace:fullscreen #timeline{order:initial;flex:1;flex-basis:auto}
 @media(max-width:650px){.workspace:fullscreen .transport{gap:7px;flex-wrap:wrap;padding:25px 12px 12px}.workspace:fullscreen #timeline{order:2;flex-basis:100%}.workspace:fullscreen button{padding:8px}.workspace:fullscreen #snapshot{display:none}}
 @media(prefers-reduced-motion:reduce){.workspace:fullscreen .transport{transition:none}}
+
+/* Native disclosure groups keep settings compact without changing their values. */
+details.panel{padding:0;color:var(--text);font-size:14px;line-height:normal}
+.panel>summary{display:flex;align-items:center;gap:10px;padding:20px 0;list-style:none;font-size:13px;font-weight:500;letter-spacing:1px}
+.panel>summary::-webkit-details-marker{display:none}
+.panel>summary span{font:10px monospace;color:var(--accent)}
+.panel>summary::after{content:'›';margin-left:auto;color:var(--muted);font-size:20px;line-height:1;transform:rotate(0deg)}
+.panel[open]>summary::after{transform:rotate(90deg)}
+.panel[open]{padding-bottom:22px}
+.panel[open]>summary{padding-bottom:8px}
+.panel>summary:hover{color:var(--accent)}
+.panel>summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
+
+/* Header metadata and language choices stay separate from sky controls. */
+header{height:auto;min-height:88px;gap:20px;padding-top:12px;padding-bottom:12px}
+.brand,.brand-copy{min-width:0}.brand-title{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.brand-title strong{white-space:nowrap}.brand-english{font-size:10px;letter-spacing:2px;color:var(--muted)}
+.version{font:10px monospace;color:var(--accent);border:1px solid #344137;border-radius:20px;padding:3px 7px;white-space:nowrap}
+.author{display:inline-block;margin-top:5px;color:var(--muted);font-size:10px;text-decoration:none}.author:hover{color:var(--accent)}
+.header-actions{display:flex;align-items:center;justify-content:flex-end;gap:14px;flex-wrap:wrap}.language-switch{display:flex;gap:2px;border:1px solid var(--line);border-radius:8px;padding:3px}.language-switch button{padding:5px 8px;border:0;background:transparent;font-size:11px}.language-switch button[aria-pressed=true]{color:var(--accent);background:#26362b}
+aside select{max-width:100%;text-overflow:ellipsis}.panel small{display:block;margin-top:8px}.panel .pair>*{min-width:0}.panel button{overflow-wrap:anywhere}.checks{flex-wrap:wrap}.panel>summary{letter-spacing:.4px}.scene-top>div{min-width:0}.pill{white-space:normal;text-align:center}.transport button{flex-shrink:0}
+@media(min-width:761px){html[lang=ru] main{grid-template-columns:minmax(0,1fr) 350px}}
+@media(max-width:1050px){.header-actions{gap:6px}.brand-english{display:none}.transport{flex-wrap:wrap}.transport #timeline{min-width:60px}.workspace:fullscreen .transport{flex-wrap:wrap}}
+@media(max-width:760px){header{padding:12px 18px;align-items:flex-start;gap:10px}.brand{gap:8px}.brand-title{gap:6px}.brand strong{font-size:20px}.mark{font-size:27px}.header-actions{flex-direction:column;align-items:flex-end;flex-wrap:nowrap}.header-actions>button{font-size:10px;padding:6px 8px}.language-switch button{font-size:10px;padding:4px 6px}.author{font-size:9px}.scene-top{flex-wrap:wrap}.brand-title strong{letter-spacing:1px}}
+@media(max-width:380px){header{flex-wrap:wrap}.header-actions{width:100%;flex-direction:row;justify-content:space-between}.brand-english{display:inline}.panel .pair{gap:8px}}
+
+#customFocalField{padding-left:10px;border-left:2px solid #344137}#customFocal{font-variant-numeric:tabular-nums}

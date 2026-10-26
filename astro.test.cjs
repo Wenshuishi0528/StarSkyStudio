@@ -43,3 +43,17 @@ const before=A.camera(0,89.9),after=A.turnCamera(before,0,.2);
 assert.ok(A.dot(before.forward,after.forward)>.99999);
 assert.ok(A.dot(before.up,after.up)>.99999);
 console.log('PASS: lower hemisphere, 360-degree yaw/pitch/roll loops, pole crossing continuity, camera serialization, 10,000 mixed rotations without drift.');
+
+// Background and labels share the catalogue epoch, including far-date precession.
+for(const year of [1900,2000,2026,2100]){
+ const ms=Date.UTC(year,6,18),lat=46.05,lon=-122.3,b=A.basis(ms,lat,lon);
+ const j=A.j2000Basis(ms,lat,lon);
+ const v=A.equatorial(279.2347,38.7837),dated=A.precess(279.2347,38.7837,ms);
+ const left=A.horizontal(v,j),right=A.horizontal(dated,b);
+ assert.ok(Math.hypot(...left.map((x,i)=>x-right[i]))<1e-12);
+ const north=A.gridDirection(0,90,'equatorial',b);
+ assert.ok(Math.abs(Math.asin(north[2])/A.D-lat)<1e-10);
+ assert.ok(Math.abs(north[0])<1e-12);
+ assert.ok(Math.abs(A.gridDirection(0,90,'horizontal',b)[2]-1)<1e-12);
+}
+console.log('PASS: J2000 background alignment across epochs; equatorial poles follow latitude, horizontal poles remain zenith/nadir.');
